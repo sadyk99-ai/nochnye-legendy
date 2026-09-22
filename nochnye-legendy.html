@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ночные легенды">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0b0a">
+<meta name="description" content="Ночные легенды — тёмное фэнтези RPG. Создай героя, исследуй мир, сражайся и пиши свою историю.">
+<meta property="og:title" content="Ночные легенды">
+<meta property="og:description" content="Ночные легенды — тёмный мир. Твоя история.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<title>Ночные легенды — Тёмный мир. Твоя история.</title>
+<!-- Firebase (онлайн: чат, друзья, письма). Бесплатный проект: https://console.firebase.google.com -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-database-compat.js"></script>
+<style>
+.chat-box{max-height:220px;overflow-y:auto;background:#14110e;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.85rem}
+.chat-msg{margin-bottom:8px;line-height:1.35}
+.chat-msg .cn{color:var(--accent2);font-weight:600}
+.chat-msg .ct{color:var(--text-dim);font-size:.7rem;margin-left:6px}
+.chat-input-row{display:flex;gap:6px}
+.chat-input-row input{flex:1;background:#221c18;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-family:inherit;font-size:.9rem}
+.online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3a7a4a;margin-right:4px}
+.offline-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#666;margin-right:4px}
+.mail-badge{background:var(--accent);color:#fff;font-size:.7rem;padding:1px 6px;border-radius:10px;margin-left:4px}
+:root{--bg:#0d0b0a;--bg2:#161210;--panel:#1c1714;--border:#3a2f28;--accent:#8b1a1a;--accent2:#c9a227;--text:#e8dcc8;--text-dim:#a89880;--hp:#a32d2d;--stamina:#3a7a4a}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;line-height:1.45;user-select:none}
+.screen{display:none;min-height:100dvh;flex-direction:column}
+.screen.active{display:flex}
+#screen-title{justify-content:center;align-items:center;text-align:center;padding:24px;background:radial-gradient(ellipse at center,#1a1210 0%,#0d0b0a 70%)}
+.logo{font-size:clamp(2.2rem,8vw,3.4rem);font-weight:700;letter-spacing:.12em;color:var(--accent);text-shadow:0 0 30px rgba(139,26,26,.5);margin-bottom:8px}
+.tagline{color:var(--text-dim);font-size:1rem;margin-bottom:48px;letter-spacing:.05em}
+.btn{background:var(--accent);color:#fff;border:none;padding:14px 32px;font-size:1.05rem;border-radius:6px;cursor:pointer;transition:.15s;font-weight:600;letter-spacing:.03em;font-family:inherit}
+.btn:active{background:#a52222;transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text-dim);margin-top:12px}
+#screen-create{padding:20px 16px 40px;max-width:480px;margin:0 auto;width:100%}
+.create-step{display:none}
+.create-step.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.step-title{font-size:1.35rem;margin-bottom:20px;color:var(--accent2);text-align:center}
+.option-grid{display:grid;gap:10px;margin-bottom:24px}
+.option{background:var(--panel);border:1px solid var(--border);padding:14px 16px;border-radius:8px;cursor:pointer;transition:.15s;text-align:left}
+.option:active{border-color:var(--accent);background:#241c18}
+.option-name{font-weight:600;margin-bottom:4px}
+.option-desc{font-size:.85rem;color:var(--text-dim)}
+input[type=text]{width:100%;padding:14px 16px;background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:1.1rem;margin-bottom:20px;outline:none;font-family:inherit}
+input[type=text]:focus{border-color:var(--accent)}
+.create-nav{display:flex;gap:12px;justify-content:center;margin-top:8px}
+#screen-game{max-width:520px;margin:0 auto;width:100%;position:relative}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-top)) 14px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--panel);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.player-info{flex:1;min-width:0}
+.player-name{font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player-meta{font-size:.75rem;color:var(--text-dim)}
+.bars{width:100%;margin-top:4px}
+.bar{height:6px;background:#2a221c;border-radius:3px;overflow:hidden;margin-bottom:3px}
+.bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.bar-hp .bar-fill{background:var(--hp)}
+.bar-stamina .bar-fill{background:var(--stamina)}
+.bar-energy .bar-fill{background:var(--accent2)}
+.resources{display:flex;gap:10px;font-size:.8rem;color:var(--text-dim)}
+.res{display:flex;align-items:center;gap:3px}
+.location-header{padding:16px 16px 8px;text-align:center}
+.loc-name{font-size:1.25rem;color:var(--accent2);margin-bottom:4px}
+.loc-desc{font-size:.9rem;color:var(--text-dim);margin-bottom:12px}
+.time-weather{font-size:.8rem;color:var(--text-dim);opacity:.8}
+.content{flex:1;padding:0 14px 20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px}
+.panel-title{font-size:.85rem;color:var(--accent2);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase}
+.actions{display:grid;gap:8px}
+.action-btn{background:#221c18;border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;text-align:left;cursor:pointer;font-size:.95rem;transition:.12s;display:flex;align-items:center;gap:10px;font-family:inherit;width:100%}
+.action-btn:active{border-color:var(--accent);background:#2a221c}
+.action-btn:disabled{opacity:.45;cursor:not-allowed}
+.action-btn .icon{font-size:1.2rem;width:28px;text-align:center}
+.log{font-size:.92rem;color:var(--text);line-height:1.55;max-height:180px;overflow-y:auto}
+.log p{margin-bottom:8px}
+.log .dim{color:var(--text-dim)}
+.log .important{color:var(--accent2)}
+.log .danger{color:#d9534f}
+.bottom-nav{display:flex;background:var(--bg2);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:50}
+.nav-btn{flex:1;background:none;border:none;color:var(--text-dim);padding:10px 4px;font-size:.7rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.12s;font-family:inherit}
+.nav-btn.active,.nav-btn:active{color:var(--text)}
+.nav-btn .icon{font-size:1.25rem}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:#221c18;padding:10px;border-radius:6px;text-align:center}
+.stat-label{font-size:.7rem;color:var(--text-dim);margin-bottom:2px}
+.stat-value{font-size:1.15rem;font-weight:600}
+.combat-area{text-align:center}
+.enemy-name{font-size:1.2rem;color:var(--accent);margin-bottom:6px}
+.enemy-hp{margin-bottom:16px}
+.combat-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;position:relative}
+.modal h3{margin-bottom:12px;color:var(--accent2);padding-right:30px}
+.modal p{margin-bottom:10px;font-size:.95rem}
+.modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-dim);font-size:1.4rem;cursor:pointer;line-height:1;padding:4px 8px;font-family:inherit}
+.modal-close:active{color:var(--text)}
+@keyframes achSlide{from{transform:translate(-50%,-100px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@media(max-width:380px){.logo{font-size:2rem}.action-btn{padding:11px 12px;font-size:.9rem}}
+</style>
+</head>
+<body>
+
+<div id="screen-title" class="screen active">
+  <div class="logo">НОЧНЫЕ ЛЕГЕНДЫ</div>
+  <div class="tagline">Тёмный мир. Твоя история.</div>
+  <button class="btn" onclick="startCreate()">Начать путь</button>
+  <button class="btn btn-secondary" onclick="loadGame()" id="btn-continue" style="display:none">Продолжить</button>
+  <button class="btn btn-secondary" onclick="resetGame()" id="btn-reset" style="display:none;font-size:.85rem;padding:8px 20px">Начать заново</button>
+</div>
+
+<div id="screen-create" class="screen">
+  <div class="create-step active" id="step-gender">
+    <div class="step-title">1. Выберите пол</div>
+    <div class="option-grid">
+      <div class="option" onclick="selectGender('male')"><div class="option-name">Мужской</div><div class="option-desc">Визуальные и ролевые отличия</div></div>
+      <div class="option" onclick="selectGender('female')"><div class="option-name">Женский</div><div class="option-desc">Визуальные и ролевые отличия</div></div>
+    </div>
+  </div>
+  <div class="create-step" id="step-name">
+    <div class="step-title">2. Введите имя</div>
+    <input type="text" id="input-name" placeholder="Имя героя..." maxlength="16" autocomplete="off">
+    <div class="create-nav">
+      <button class="btn btn-secondary" onclick="goStep('gender')">Назад</button>
+      <button class="btn" onclick="confirmName()">Далее</button>
+    </div>
+  </div>
+  <div class="create-step" id="step-faction">
+    <div class="step-title">3. Выберите фракцию</div>
+    <div class="option-grid" id="faction-list"></div>
+    <div class="create-nav"><button class="btn btn-secondary" onclick="goStep('name')">Назад</button></div>
+  </div>
+  <div class="create-step" id="step-class">
+    <div class="step-title">4. Выберите класс</div>
+    <div class="option-grid" id="class-list"></div>
+    <div class="create-nav"><button class="btn btn-secondary" onclick="goStep('faction')">Назад</button></div>
+  </div>
+  <div class="create-step" id="step-confirm">
+    <div class="step-title">Готово к выходу в мир</div>
+    <div class="panel" id="confirm-summary"></div>
+    <div class="create-nav">
+      <button class="btn btn-secondary" onclick="goStep('class')">Назад</button>
+      <button class="btn" onclick="finishCreate()">Войти в город</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-game" class="screen">
+  <div class="topbar">
+    <div class="avatar" id="avatar">⚔</div>
+    <div class="player-info">
+      <div class="player-name" id="ui-name">—</div>
+      <div class="player-meta"><span id="ui-level">Ур. 1</span> · <span id="ui-class">—</span></div>
+      <div class="bars">
+        <div class="bar bar-hp"><div class="bar-fill" id="bar-hp" style="width:100%"></div></div>
+        <div class="bar bar-stamina"><div class="bar-fill" id="bar-stamina" style="width:100%"></div></div>
+        <div class="bar bar-energy" style="height:4px"><div class="bar-fill" id="bar-energy" style="width:100%"></div></div>
+      </div>
+    </div>
+    <div class="resources">
+      <div class="res">🪙 <span id="ui-gold">0</span></div>
+      <div class="res">🔷 <span id="ui-sapphire">0</span></div>
+    </div>
+  </div>
+  <div class="location-header">
+    <div class="loc-name" id="loc-name">Город-крепость</div>
+    <div class="loc-desc" id="loc-desc">Сердце мира. Здесь всё начинается.</div>
+    <div class="time-weather" id="time-weather">☀️ День · Ясно</div>
+  </div>
+  <div class="content" id="content"></div>
+  <div class="bottom-nav">
+    <button class="nav-btn active" data-tab="explore" onclick="switchTab('explore')"><span class="icon">🗺️</span><span>Мир</span></button>
+    <button class="nav-btn" data-tab="char" onclick="switchTab('char')"><span class="icon">👤</span><span>Герой</span></button>
+    <button class="nav-btn" data-tab="inv" onclick="switchTab('inv')"><span class="icon">🎒</span><span>Инвентарь</span></button>
+    <button class="nav-btn" data-tab="log" onclick="switchTab('log')"><span class="icon">📜</span><span>Журнал</span></button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+'use strict';
+
+// ========== ДАННЫЕ ==========
+const FACTIONS={
+  night:{id:'night',name:'Ночные Кровники',icon:'🩸',desc:'Тёмная сила крови и магии.',classes:['blood_blade','blood_mage','witcher']},
+  ash:{id:'ash',name:'Орден Пепла',icon:'🩶',desc:'Дисциплина, честь и сталь.',classes:['knight','archer','duelist']},
+  wild:{id:'wild',name:'Дикие Кланы',icon:'🌲',desc:'Свобода, ярость и природа.',classes:['berserk','beast_hunter']},
+  fallen:{id:'fallen',name:'Падшие',icon:'⚫',desc:'Изгнанники и наёмники.',classes:['mercenary','rogue']}
+};
+const CLASSES={
+  blood_blade:{id:'blood_blade',name:{male:'Кровавый Клинок',female:'Кровавая Воительница'},faction:'night',icon:'🩸',desc:'Ближний бой. Сила крови.',stats:{hp:115,strength:14,defense:7,agility:14,magic:6,intelligence:7,luck:6}},
+  blood_mage:{id:'blood_mage',name:{male:'Кровавый Маг',female:'Кровавая Магиня'},faction:'night',icon:'🔮',desc:'Высокий магический урон.',stats:{hp:90,strength:6,defense:5,agility:9,magic:16,intelligence:14,luck:6}},
+  witcher:{id:'witcher',name:{male:'Ведьмак',female:'Ведьма'},faction:'night',icon:'🧙',desc:'Контроль, дебаффы, алхимия.',stats:{hp:100,strength:9,defense:5,agility:10,magic:14,intelligence:15,luck:7}},
+  knight:{id:'knight',name:{male:'Рыцарь',female:'Рыцарка'},faction:'ash',icon:'🛡️',desc:'Меч и щит.',stats:{hp:130,strength:14,defense:14,agility:6,magic:2,intelligence:6,luck:4}},
+  archer:{id:'archer',name:{male:'Лучник',female:'Лучница'},faction:'ash',icon:'🏹',desc:'Дальний бой.',stats:{hp:100,strength:9,defense:6,agility:15,magic:3,intelligence:9,luck:7}},
+  duelist:{id:'duelist',name:{male:'Дуэлянт',female:'Дуэлянтка'},faction:'ash',icon:'⚔️',desc:'Быстрый стиль.',stats:{hp:110,strength:12,defense:8,agility:16,magic:2,intelligence:10,luck:7}},
+  berserk:{id:'berserk',name:{male:'Берсерк',female:'Берсерк'},faction:'wild',icon:'🪓',desc:'Ярость.',stats:{hp:120,strength:15,defense:8,agility:5,magic:2,intelligence:4,luck:4}},
+  beast_hunter:{id:'beast_hunter',name:{male:'Охотник на зверей',female:'Охотница на зверей'},faction:'wild',icon:'🐺',desc:'Клинок и следы.',stats:{hp:105,strength:11,defense:7,agility:13,magic:2,intelligence:11,luck:8}},
+  mercenary:{id:'mercenary',name:{male:'Наёмник',female:'Наёмница'},faction:'fallen',icon:'💰',desc:'Два меча.',stats:{hp:115,strength:13,defense:9,agility:10,magic:2,intelligence:8,luck:10}},
+  rogue:{id:'rogue',name:{male:'Разбойник',female:'Разбойница'},faction:'fallen',icon:'🗡️',desc:'Два кинжала.',stats:{hp:95,strength:10,defense:5,agility:15,magic:2,intelligence:9,luck:8}}
+};
+const XP_TABLE=[0,2800,4300,6200,8500,11200,14300,17800,21800,26200,31000,36500,42500,49000,56000,63500,71500,80000,89000,98500,108500,119000,130000,141500,153500,166000,179000,192500,206500,221000,236000,251500,267500,284000,301000,318500,336500,355000,374000,393500,413500,434000,455000,476500,498500];
+const MAX_LEVEL=45;
+const LOCATIONS={
+  city:{id:'city',name:'Город-крепость',desc:'Высокие каменные стены. Фонари качаются на ветру.',actions:[{id:'square',icon:'⛲',label:'Центральная площадь'},{id:'tavern',icon:'🍺',label:'Таверна «Старый Ворон»'},{id:'forge',icon:'🔨',label:'Кузнечный квартал'},{id:'alchemy',icon:'🧪',label:'Алхимик'},{id:'board',icon:'📜',label:'Доска заданий'},{id:'home',icon:'🏠',label:'Дом'},{id:'gate',icon:'🚪',label:'Главные ворота'}]},
+  square:{id:'square',name:'Центральная площадь',desc:'Старый каменный фонтан. Вороны. Четыре фонаря.',actions:[{id:'city',icon:'🏰',label:'Вернуться в город'},{id:'look',icon:'👀',label:'Осмотреться'},{id:'fountain',icon:'⛲',label:'Подойти к фонтану'},{id:'people',icon:'👥',label:'Посмотреть на людей'}]},
+  tavern:{id:'tavern',name:'Таверна «Старый Ворон»',desc:'Тёплое тёмное дерево. Мягкий свет камина.',actions:[]},
+  forge:{id:'forge',name:'Кузнечный квартал',desc:'Жар печей. Стук молота.',actions:[{id:'city',icon:'🏰',label:'Вернуться'},{id:'weapons',icon:'⚔️',label:'Оружие и броня'},{id:'upgrade',icon:'✨',label:'Улучшение снаряжения'},{id:'look_forge',icon:'👀',label:'Осмотреться'}]},
+  alchemy:{id:'alchemy',name:'Алхимик',desc:'Старая каменная башня с плющом.',actions:[{id:'city',icon:'🏰',label:'Вернуться'},{id:'alchemist_shop',icon:'🧪',label:'Поговорить с алхимиком'},{id:'look_alchemy',icon:'👀',label:'Осмотреться'}]},
+  board:{id:'board',name:'Доска заданий',desc:'Старая деревянная доска. Гвозди, бумажки.',actions:[{id:'city',icon:'🏰',label:'Вернуться'},{id:'take_quest',icon:'📜',label:'Прочитать объявления'}]},
+  home:{id:'home',name:'Дом',desc:'Твой дом. Камин потрескивает.',actions:[{id:'city',icon:'🏰',label:'Выйти'},{id:'rest',icon:'🛏️',label:'Отдохнуть у камина'},{id:'chronicle',icon:'📖',label:'Летопись героя'},{id:'look_home',icon:'👀',label:'Осмотреться дома'}]},
+  gate:{id:'gate',name:'Главные ворота',desc:'Тяжёлые ворота крепости. За ними — старая дорога.',actions:[{id:'city',icon:'🏰',label:'Вернуться в город'},{id:'travel_cemetery',icon:'⚰️',label:'Кладбище'},{id:'travel_ruins',icon:'🏚️',label:'Руины'},{id:'travel_forest',icon:'🌲',label:'Чёрный лес'},{id:'travel_rocks',icon:'🪨',label:'Скалы'},{id:'travel_tower',icon:'🗼',label:'Башня «Ночные легенды»'}]},
+  cemetery:{id:'cemetery',name:'Кладбище',desc:'Старые покосившиеся могилы. Густой туман.',actions:[{id:'gate',icon:'🚪',label:'Вернуться к воротам'},{id:'keeper',icon:'👴',label:'Поговорить со смотрителем'},{id:'explore',icon:'🔦',label:'Исследовать'},{id:'fight',icon:'⚔️',label:'Искать опасность'}]},
+  ruins:{id:'ruins',name:'Руины',desc:'Разрушенные дома. Камни покрыты мхом.',actions:[{id:'gate',icon:'🚪',label:'Вернуться'},{id:'explore',icon:'🔦',label:'Исследовать'},{id:'fight',icon:'⚔️',label:'Искать врагов'}]},
+  forest:{id:'forest',name:'Чёрный лес',desc:'Высокие чёрные деревья. Почти нет света.',actions:[{id:'gate',icon:'🚪',label:'Вернуться к воротам'},{id:'explore',icon:'🔦',label:'Исследовать'},{id:'fight',icon:'⚔️',label:'Искать добычу'},{id:'look_forest',icon:'👀',label:'Прислушаться'}]},
+  rocks:{id:'rocks',name:'Скалы',desc:'Высокий утёс над тёмным морем.',actions:[{id:'gate',icon:'🚪',label:'Вернуться'},{id:'listen',icon:'🌊',label:'Послушать море'},{id:'sit_rocks',icon:'🪨',label:'Сесть на край утёса'},{id:'look_sea',icon:'👁️',label:'Смотреть на горизонт'}]},
+  tower_approach:{id:'tower_approach',name:'Подступы к Башне',desc:'Высокая чёрная башня стоит у самого моря. Ветер несёт запах соли и пыли.',actions:[{id:'gate',icon:'🚪',label:'Вернуться к воротам'},{id:'enter_tower',icon:'🗼',label:'Войти в Башню'},{id:'port',icon:'⚓',label:'Маленький порт'}]},
+  port:{id:'port',name:'Маленький порт',desc:'Старый причал. Одна лодка покачивается на волнах. Рядом сидит лодочник.',actions:[{id:'tower_approach',icon:'🗼',label:'К Башне'},{id:'boatman',icon:'👴',label:'Поговорить с лодочником'}]},
+  tower:{id:'tower',name:'Башня «Ночные легенды»',desc:'Внутри холодно и тихо. Каменные ступени уходят вверх.',actions:[]}
+};
+const ENEMIES=[
+  {id:'wolf',name:'Волк',hp:45,strength:8,defense:3,xp:35,gold:[5,15],icon:'🐺'},
+  {id:'bandit',name:'Бандит',hp:60,strength:10,defense:5,xp:55,gold:[12,30],icon:'🗡️'},
+  {id:'skeleton',name:'Скелет',hp:50,strength:9,defense:4,xp:45,gold:[8,20],icon:'💀'},
+  {id:'boar',name:'Кабан',hp:70,strength:12,defense:6,xp:60,gold:[10,25],icon:'🐗'},
+  {id:'shadow',name:'Тень',hp:40,strength:11,defense:2,xp:70,gold:[15,35],icon:'🌑'}
+];
+// ========== БАШНЯ «НОЧНЫЕ ЛЕГЕНДЫ» ==========
+const TOWER_FLOORS=[
+  {id:1,name:'Старый зал',desc:'Пыльный зал с обрушенными колоннами. Здесь когда-то встречали гостей.',minLevel:5,keyId:'key_floor1',
+   trash:[{id:'tower_rat',name:'Крыса Башни',hp:30,strength:6,defense:2,xp:20,gold:[3,8],icon:'🐀'},{id:'tower_guard',name:'Призрак стража',hp:55,strength:9,defense:4,xp:40,gold:[8,18],icon:'👻'}],
+   boss:{id:'boss1',name:'Хранитель Порога',hp:120,strength:12,defense:6,xp:120,gold:[40,70],icon:'🛡️',phases:1,special:'heavy_strike',
+         reward:{extraGold:20}}},
+  {id:2,name:'Заброшенные покои',desc:'Старые кровати, разбитые зеркала. Кто-то жил здесь очень давно.',minLevel:10,keyId:'key_floor2',
+   trash:[{id:'tower_spirit',name:'Беспокойный дух',hp:50,strength:10,defense:3,xp:45,gold:[10,20],icon:'💨'},{id:'tower_maid',name:'Тень служанки',hp:40,strength:8,defense:2,xp:35,gold:[7,15],icon:'👗'}],
+   boss:{id:'boss2',name:'Госпожа Покоев',hp:160,strength:14,defense:5,xp:160,gold:[50,90],icon:'👑',phases:1,special:'drain',
+         reward:{extraGold:30}}},
+  {id:3,name:'Тёмные коридоры',desc:'Узкие проходы. Свет почти не проникает. Шаги эхом отдаются в темноте.',minLevel:15,keyId:'key_floor3',
+   trash:[{id:'tower_shade',name:'Теневой ползун',hp:45,strength:11,defense:2,xp:50,gold:[12,22],icon:'🌑'},{id:'tower_hunter',name:'Охотник коридоров',hp:70,strength:13,defense:5,xp:60,gold:[15,30],icon:'🗡️'}],
+   boss:{id:'boss3',name:'Повелитель Теней',hp:200,strength:16,defense:4,xp:200,gold:[70,110],icon:'👤',phases:1,special:'shadow_clone',
+         reward:{extraGold:40}}},
+  {id:4,name:'Зал старых воинов',desc:'Ряды ржавых доспехов. Здесь когда-то тренировались защитники Башни.',minLevel:20,keyId:'key_floor4',
+   trash:[{id:'tower_armor',name:'Оживший доспех',hp:90,strength:14,defense:10,xp:70,gold:[18,35],icon:'🛡️'},{id:'tower_squire',name:'Призрак оруженосца',hp:65,strength:12,defense:6,xp:55,gold:[14,28],icon:'⚔️'}],
+   boss:{id:'boss4',name:'Капитан Стражи',hp:250,strength:18,defense:12,xp:250,gold:[90,140],icon:'🪖',phases:1,special:'shield_wall',
+         reward:{extraGold:50,equip:'captain_blade'}}},
+  {id:5,name:'Затопленный этаж',desc:'Вода по щиколотку. Капли падают с потолка. Здесь сыро и холодно.',minLevel:25,keyId:'key_floor5',
+   trash:[{id:'tower_drowned',name:'Утопленник',hp:80,strength:13,defense:5,xp:65,gold:[16,32],icon:'💧'},{id:'tower_eel',name:'Тёмная змея',hp:55,strength:15,defense:3,xp:60,gold:[14,30],icon:'🐍'}],
+   boss:{id:'boss5',name:'Хозяин Вод',hp:280,strength:17,defense:8,xp:280,gold:[100,160],icon:'🌊',phases:1,special:'flood',
+         reward:{extraGold:60}}},
+  {id:6,name:'Зал рун',desc:'Стены покрыты светящимися рунами. Воздух дрожит от древней магии.',minLevel:30,keyId:'key_floor6',
+   trash:[{id:'tower_rune',name:'Рунный страж',hp:100,strength:15,defense:7,xp:80,gold:[20,40],icon:'📜'},{id:'tower_mage',name:'Тень мага',hp:70,strength:10,defense:4,xp:75,gold:[18,38],icon:'🔮'}],
+   boss:{id:'boss6',name:'Архимаг Руин',hp:320,strength:14,defense:6,xp:320,gold:[120,180],icon:'🧙',phases:1,special:'rune_blast',
+         reward:{extraGold:70,equip:'rune_amulet'}}},
+  {id:7,name:'Старая тюрьма',desc:'Ржавые решётки. Цепи. Здесь держали тех, кого нельзя было убить.',minLevel:35,keyId:'key_floor7',
+   trash:[{id:'tower_prisoner',name:'Безумный узник',hp:85,strength:16,defense:4,xp:85,gold:[22,42],icon:'🔗'},{id:'tower_jailer',name:'Тюремщик',hp:110,strength:15,defense:9,xp:90,gold:[25,48],icon:'🗝️'}],
+   boss:{id:'boss7',name:'Палач Башни',hp:360,strength:20,defense:10,xp:360,gold:[140,200],icon:'🪓',phases:1,special:'execute',
+         reward:{extraGold:80}}},
+  {id:8,name:'Верхняя башня',desc:'Высокие окна. Ветер воет. Отсюда уже видно море и весь город.',minLevel:40,keyId:'key_floor8',
+   trash:[{id:'tower_elite',name:'Элитный страж',hp:130,strength:18,defense:11,xp:100,gold:[30,55],icon:'⚔️'},{id:'tower_wraith',name:'Высший призрак',hp:95,strength:17,defense:5,xp:95,gold:[28,50],icon:'👻'}],
+   boss:{id:'boss8',name:'Хранитель Вершины',hp:420,strength:22,defense:12,xp:420,gold:[160,240],icon:'🗼',phases:1,special:'tower_strike',
+         reward:{extraGold:100,equip:'tower_armor'}}},
+  {id:9,name:'Вершина',desc:'Самый верх Башни. Здесь правит тот, кто никогда не спускался вниз.',minLevel:45,keyId:'key_floor9',
+   trash:[{id:'tower_final_guard',name:'Последний Страж',hp:150,strength:20,defense:12,xp:120,gold:[40,70],icon:'🛡️'}],
+   boss:{id:'boss9',name:'Владыка Башни',hp:600,strength:25,defense:15,xp:600,gold:[250,400],icon:'👑',phases:3,special:'lord_phases',
+         reward:{title:'Покоритель Башни',extraGold:200,equip:'lord_crown',sapphire:1}}}
+];
+// Квесты на ключи Башни: уровень → ключ от этажа
+const TOWER_KEY_QUESTS=[
+  {id:'keyq1',floor:1,reqLevel:5, keyId:'key_floor1',name:'Ключ Старого зала',icon:'🔑',description:'На 5 уровне тебе поручают добыть ключ от первого этажа Башни.',location:'ruins',enemyId:'bandit',duration:40,energyCost:2,reward:{xp:50,gold:25}},
+  {id:'keyq2',floor:2,reqLevel:10,keyId:'key_floor2',name:'Ключ Заброшенных покоев',icon:'🔑',description:'На 10 уровне открывается путь ко второму этажу. Нужен ключ.',location:'cemetery',enemyId:'skeleton',duration:50,energyCost:2,reward:{xp:80,gold:40}},
+  {id:'keyq3',floor:3,reqLevel:15,keyId:'key_floor3',name:'Ключ Тёмных коридоров',icon:'🔑',description:'На 15 уровне доступен третий этаж Башни. Добудь ключ.',location:'forest',enemyId:'shadow',duration:60,energyCost:3,reward:{xp:120,gold:60}},
+  {id:'keyq4',floor:4,reqLevel:20,keyId:'key_floor4',name:'Ключ Зала воинов',icon:'🔑',description:'На 20 уровне — ключ от четвёртого этажа.',location:'ruins',enemyId:'bandit',duration:70,energyCost:3,reward:{xp:160,gold:80}},
+  {id:'keyq5',floor:5,reqLevel:25,keyId:'key_floor5',name:'Ключ Затопленного этажа',icon:'🔑',description:'На 25 уровне нужен ключ от пятого этажа Башни.',location:'rocks',enemyId:'boar',duration:80,energyCost:3,reward:{xp:200,gold:100}},
+  {id:'keyq6',floor:6,reqLevel:30,keyId:'key_floor6',name:'Ключ Зала рун',icon:'🔑',description:'На 30 уровне — ключ от шестого этажа.',location:'cemetery',enemyId:'shadow',duration:90,energyCost:4,reward:{xp:250,gold:120}},
+  {id:'keyq7',floor:7,reqLevel:35,keyId:'key_floor7',name:'Ключ Старой тюрьмы',icon:'🔑',description:'На 35 уровне доступен седьмой этаж. Добудь ключ.',location:'forest',enemyId:'bandit',duration:100,energyCost:4,reward:{xp:300,gold:150}},
+  {id:'keyq8',floor:8,reqLevel:40,keyId:'key_floor8',name:'Ключ Верхней башни',icon:'🔑',description:'На 40 уровне — ключ от восьмого этажа.',location:'ruins',enemyId:'shadow',duration:110,energyCost:4,reward:{xp:350,gold:180}},
+  {id:'keyq9',floor:9,reqLevel:45,keyId:'key_floor9',name:'Ключ Вершины',icon:'🗝️',description:'На 45 уровне — финальный ключ. Путь к Владыке Башни.',location:'cemetery',enemyId:'shadow',duration:120,energyCost:5,reward:{xp:400,gold:220}}
+];
+const TAVERN_DRINKS=[{id:'beer',name:'Пиво',price:25,hp:100},{id:'ale',name:'Крепкий эль',price:60,hp:250},{id:'wine',name:'Тёмное вино',price:80,hp:150},{id:'fire',name:'Огненный спирт',price:120,hp:200}];
+const TAVERN_FOOD=[{id:'bread',name:'Чёрный хлеб',price:15,hp:80},{id:'stew',name:'Мясное рагу',price:70,hp:300},{id:'meat',name:'Жареное мясо',price:100,hp:450},{id:'tea',name:'Травяной чай',price:45,hp:100,stamina:50}];
+const ITEMS={
+  wolf_pelt:{id:'wolf_pelt',name:'Волчья шкура',icon:'🐺',type:'material',price:15},
+  bone:{id:'bone',name:'Кость',icon:'🦴',type:'material',price:5},
+  scrap:{id:'scrap',name:'Металлолом',icon:'⚙️',type:'material',price:8},
+  herb:{id:'herb',name:'Трава',icon:'🌿',type:'material',price:6},
+  rag:{id:'rag',name:'Тряпка',icon:'🧵',type:'material',price:3},
+  shadow_dust:{id:'shadow_dust',name:'Тень-пыль',icon:'🌑',type:'material',price:25},
+  hp_potion_small:{id:'hp_potion_small',name:'Малое зелье лечения',icon:'🧪',type:'potion',heal:50,price:30},
+  hp_potion_big:{id:'hp_potion_big',name:'Большое зелье',icon:'⚗️',type:'potion',heal:150,price:90},
+  stamina_potion:{id:'stamina_potion',name:'Зелье бодрости',icon:'🧴',type:'potion',stamina:50,price:40},
+  bandage:{id:'bandage',name:'Бинт',icon:'🩹',type:'potion',heal:25,price:10},
+  rusty_sword:{id:'rusty_sword',name:'Ржавый меч',icon:'🗡️',type:'weapon',dmg:3,price:20},
+  iron_sword:{id:'iron_sword',name:'Железный меч',icon:'⚔️',type:'weapon',dmg:7,price:120},
+  steel_sword:{id:'steel_sword',name:'Стальной меч',icon:'⚔️',type:'weapon',dmg:12,price:350},
+  dagger:{id:'dagger',name:'Кинжал',icon:'🔪',type:'weapon',dmg:4,price:35},
+  bow:{id:'bow',name:'Короткий лук',icon:'🏹',type:'weapon',dmg:5,price:80},
+  leather_armor:{id:'leather_armor',name:'Кожаная броня',icon:'🥼',type:'armor',def:3,price:60},
+  iron_armor:{id:'iron_armor',name:'Железная броня',icon:'🛡️',type:'armor',def:7,price:200},
+  old_letter:{id:'old_letter',name:'Старое письмо',icon:'📜',type:'quest',price:0},
+  // Ключи Башни (получаются только через квесты по уровню)
+  key_floor1:{id:'key_floor1',name:'Ключ от 1 этажа',icon:'🔑',type:'key',price:0},
+  key_floor2:{id:'key_floor2',name:'Ключ от 2 этажа',icon:'🔑',type:'key',price:0},
+  key_floor3:{id:'key_floor3',name:'Ключ от 3 этажа',icon:'🔑',type:'key',price:0},
+  key_floor4:{id:'key_floor4',name:'Ключ от 4 этажа',icon:'🔑',type:'key',price:0},
+  key_floor5:{id:'key_floor5',name:'Ключ от 5 этажа',icon:'🔑',type:'key',price:0},
+  key_floor6:{id:'key_floor6',name:'Ключ от 6 этажа',icon:'🔑',type:'key',price:0},
+  key_floor7:{id:'key_floor7',name:'Ключ от 7 этажа',icon:'🔑',type:'key',price:0},
+  key_floor8:{id:'key_floor8',name:'Ключ от 8 этажа',icon:'🔑',type:'key',price:0},
+  key_floor9:{id:'key_floor9',name:'Ключ от Вершины',icon:'🗝️',type:'key',price:0},
+  // Уникальная экипировка Башни
+  captain_blade:{id:'captain_blade',name:'Клинок Капитана',icon:'⚔️',type:'weapon',dmg:16,price:0},
+  rune_amulet:{id:'rune_amulet',name:'Рунный амулет',icon:'📿',type:'armor',def:5,price:0},
+  tower_armor:{id:'tower_armor',name:'Доспех Вершины',icon:'🛡️',type:'armor',def:14,price:0},
+  lord_crown:{id:'lord_crown',name:'Корона Владыки',icon:'👑',type:'armor',def:8,price:0}
+};
+const ENEMY_LOOT={wolf:[{item:'wolf_pelt',chance:.7},{item:'bone',chance:.4}],bandit:[{item:'scrap',chance:.5},{item:'rag',chance:.6},{item:'dagger',chance:.1}],skeleton:[{item:'bone',chance:.8},{item:'old_letter',chance:.15},{item:'rusty_sword',chance:.1}],boar:[{item:'bone',chance:.5}],shadow:[{item:'shadow_dust',chance:.5},{item:'rag',chance:.3}]};
+const ALCHEMY_RECIPES=[{result:'hp_potion_small',ingredients:{herb:2}},{result:'bandage',ingredients:{herb:1,rag:1}},{result:'stamina_potion',ingredients:{herb:2,bone:1}},{result:'hp_potion_big',ingredients:{herb:4,bone:2}}];
+const BLACKSMITH_STOCK=[{item:'rusty_sword',price:20},{item:'dagger',price:35},{item:'iron_sword',price:120},{item:'bow',price:80},{item:'leather_armor',price:60},{item:'iron_armor',price:200},{item:'steel_sword',price:350}];
+const ALCHEMIST_STOCK=[{item:'hp_potion_small',price:30},{item:'hp_potion_big',price:90},{item:'stamina_potion',price:40},{item:'bandage',price:10}];
+const SAPPHIRE_STOCK=[
+  {id:'energy_crystal',name:'Кристалл энергии',icon:'⚡',desc:'Полностью восстанавливает энергию',cost:2,effect:'energy'},
+  {id:'vitality_elixir',name:'Эликсир жизненной силы',icon:'❤️',desc:'+50 к максимальному HP навсегда',cost:5,effect:'maxhp'},
+  {id:'lucky_charm',name:'Талисман удачи',icon:'🍀',desc:'+2 к удаче навсегда',cost:4,effect:'luck'},
+  {id:'strength_stone',name:'Камень силы',icon:'💪',desc:'+2 к силе навсегда',cost:4,effect:'strength'}
+];
+const QUESTS=[
+  {id:'traces',name:'Следы во тьме',icon:'🐾',description:'Странные следы за пределами города.',location:'forest',enemyId:'wolf',duration:30,energyCost:1,reward:{xp:40,gold:15}},
+  {id:'whispers',name:'Шёпот в часовне',icon:'🕯️',description:'Проверить старую часовню.',location:'cemetery',enemyId:'skeleton',duration:45,energyCost:2,reward:{xp:60,gold:25}},
+  {id:'ruin_guard',name:'Хранитель руин',icon:'🏚️',description:'В руинах поселилось что-то опасное.',location:'ruins',enemyId:'shadow',duration:60,energyCost:3,reward:{xp:90,gold:40}},
+  {id:'bandit_camp',name:'Лагерь разбойников',icon:'🗡️',description:'У дороги разбили лагерь бандиты. Нужно разобраться.',location:'forest',enemyId:'bandit',duration:50,energyCost:2,reward:{xp:70,gold:35}},
+  {id:'boar_hunt',name:'Охота на кабана',icon:'🐗',description:'Огромный кабан пугает путников у скал.',location:'rocks',enemyId:'boar',duration:40,energyCost:2,reward:{xp:65,gold:30}},
+  {id:'shadow_hunt',name:'Охота на тень',icon:'🌑',description:'В руинах видели странную тень. Охотники не вернулись.',location:'ruins',enemyId:'shadow',duration:70,energyCost:3,reward:{xp:110,gold:55,sapphire:1}},
+  {id:'cemetery_guard',name:'Страж могил',icon:'💀',description:'Смотритель просит проверить дальние могилы.',location:'cemetery',enemyId:'skeleton',duration:55,energyCost:2,reward:{xp:75,gold:40}},
+  {id:'forest_beast',name:'Зверь Чёрного леса',icon:'🐺',description:'Что-то большое бродит между деревьями.',location:'forest',enemyId:'wolf',duration:35,energyCost:1,reward:{xp:50,gold:20}}
+];
+const TRAVEL_EVENTS=[
+  {id:'nothing',text:'Дорога идёт в тумане.',weight:20,type:'silent'},
+  {id:'raven',text:'На ветке сидит ворон. Он долго смотрит тебе вслед.',weight:15,type:'atmosphere'},
+  {id:'wind',text:'Ветер усилился. Ветви деревьев скрипят.',weight:12,type:'atmosphere'},
+  {id:'footprints',text:'На дороге свежие следы.',weight:10,type:'hint'},
+  {id:'fire',text:'Вдалеке виден брошенный костёр.',weight:8,type:'atmosphere'},
+  {id:'coins',text:'Ты находишь на дороге небольшой кошель.',weight:10,type:'find',reward:{gold:[5,20]}},
+  {id:'herb',text:'У дороги растут травы.',weight:8,type:'find',reward:{item:'herb',qty:1}},
+  {id:'scrap',text:'У обочины лежит кусок металла.',weight:6,type:'find',reward:{item:'scrap',qty:1}},
+  {id:'stranger',text:'Навстречу идёт странник.',weight:8,type:'npc'},
+  {id:'hunter',text:'Охотник у костра. Предлагает отдохнуть.',weight:5,type:'npc',reward:{heal:30}},
+  {id:'ambush',text:'Из тумана выходят силуэты!',weight:8,type:'combat'},
+  {id:'predator',text:'Из-за деревьев слышен вой.',weight:5,type:'combat'},
+  {id:'light',text:'Вдалеке мелькнул странный свет.',weight:3,type:'secret'},
+  {id:'sapphire_find',text:'Среди камней блеснул осколок сапфира.',weight:3,type:'find',reward:{sapphire:1}}
+];
+const ACHIEVEMENTS=[
+  {id:'first_blood',name:'Первая кровь',desc:'Победить в первом бою',cat:'combat'},
+  {id:'survivor',name:'Выживший',desc:'Пережить поражение',cat:'combat'},
+  {id:'slayer',name:'Истребитель',desc:'Победить 15 врагов',cat:'combat'},
+  {id:'traveler',name:'Странник',desc:'10 путешествий',cat:'explore'},
+  {id:'forest_visit',name:'В тени леса',desc:'Побывать в Чёрном лесу',cat:'explore'},
+  {id:'cemetery_visit',name:'Тишина за стеной',desc:'Открыть кладбище',cat:'explore'},
+  {id:'ruins_visit',name:'Среди обломков',desc:'Побывать в Руинах',cat:'explore'},
+  {id:'rich',name:'Собиратель',desc:'Накопить 500 монет',cat:'city'},
+  {id:'level5',name:'Не новичок',desc:'Достичь 5 уровня',cat:'city'},
+  {id:'level10',name:'Опытный',desc:'Достичь 10 уровня',cat:'city'},
+  {id:'quest_master',name:'Наёмник',desc:'Выполнить 5 заданий',cat:'city'},
+  {id:'alchemist',name:'Алхимик-любитель',desc:'Создать первое зелье',cat:'city'},
+  {id:'sapphire_owner',name:'Синий камень',desc:'Получить первый сапфир',cat:'city'},
+  {id:'tower_conqueror',name:'Покоритель Башни',desc:'Победить Владыку Башни (этаж 9)',cat:'combat'},
+  {id:'codex_reader',name:'Хранитель знаний',desc:'Открыть 10 записей Кодекса',cat:'explore'}
+];
+// ========== КОДЕКС ==========
+const CODEX={
+  locations:[
+    {id:'city',icon:'🏰',name:'Город-крепость',text:'Древняя твердыня за высокими стенами. Здесь ещё теплится жизнь: кузница, таверна, алхимик. Фонари качаются на ветру, а стража не всегда смотрит в нужную сторону.'},
+    {id:'square',icon:'⛲',name:'Центральная площадь',text:'Каменный фонтан в центре. Вода мутная, на дне — старые монеты. Вороны любят эту площадь больше, чем люди.'},
+    {id:'tavern',icon:'🍺',name:'Таверна «Старый Ворон»',text:'Тёплое дерево, запах эля и дыма. Здесь Странник Рей раздаёт работу, а за общим столом можно услышать чужие истории — или оставить свою.'},
+    {id:'forge',icon:'🔨',name:'Кузнечный квартал',text:'Жар печей и стук молота. Здесь чинят клинки и куют броню. Кузнец немногословен, но за монеты сделает почти всё.'},
+    {id:'alchemy',icon:'🧪',name:'Башня алхимика',text:'Старая каменная башня, увитая плющом. Внутри — колбы, травы и странный запах. Алхимик знает толк в зельях и редких камнях.'},
+    {id:'board',icon:'📜',name:'Доска заданий',text:'Гвозди, обрывки бумаги, объявления. Кто-то ищет пропавших. Кто-то предлагает монету за кровь. Город не спит спокойно.'},
+    {id:'home',icon:'🏠',name:'Твой дом',text:'Камин, стол, тишина. Единственное место, где можно выдохнуть. На столе — Книга странника и следы прошлых ночей.'},
+    {id:'gate',icon:'🚪',name:'Главные ворота',text:'Тяжёлые створки крепости. За ними — дорога, туман и всё, что город предпочёл бы забыть. Отсюда начинается настоящий путь.'},
+    {id:'cemetery',icon:'⚰️',name:'Кладбище',text:'Покосившиеся кресты и густой туман. Смотритель говорит мало. Земля здесь помнит больше, чем живые.'},
+    {id:'ruins',icon:'🏚️',name:'Руины',text:'Разрушенные дома, мох на камнях. Когда-то здесь жили люди. Теперь — только эхо шагов и чужие тени.'},
+    {id:'forest',icon:'🌲',name:'Чёрный лес',text:'Деревья стоят слишком близко. Света почти нет. Волки, бандиты и то, что не имеет имени, чувствуют себя здесь хозяевами.'},
+    {id:'rocks',icon:'🪨',name:'Скалы',text:'Утёс над тёмным морем. Ветер срывает слова. Хорошее место, чтобы подумать — или чтобы никто не услышал крика.'},
+    {id:'tower_approach',icon:'🗼',name:'Подступы к Башне',text:'Чёрная башня стоит у моря. Камень холодный даже днём. Говорят, внутри этажи не заканчиваются — или не хотят отпускать.'},
+    {id:'port',icon:'⚓',name:'Маленький порт',text:'Старый причал и одна лодка. Лодочник сидит и смотрит на воду. «Погода плохая. В море не поплыву. Приходи позже.»'},
+    {id:'tower',icon:'🗼',name:'Башня «Ночные легенды»',text:'Девять этажей боли и памяти. Ключи открывают путь. Боссы ждут. На вершине — тот, кто никогда не спускался вниз.'}
+  ],
+  enemies:[
+    {id:'wolf',icon:'🐺',name:'Волк',text:'Серый хищник Чёрного леса. Бьёт быстро, брони почти нет. Шкура ценится у торговцев.'},
+    {id:'bandit',icon:'🗡️',name:'Бандит',text:'Обычный разбойник с дороги. Не герой и не демон — просто голодный человек с клинком.'},
+    {id:'skeleton',icon:'💀',name:'Скелет',text:'Поднятый костяк с кладбища. Не чувствует страха. Ломается громко.'},
+    {id:'boar',icon:'🐗',name:'Кабан',text:'Тяжёлый зверь у скал и опушек. Толстая шкура, сильный удар. Охотники уважают его неохотно.'},
+    {id:'shadow',icon:'🌑',name:'Тень',text:'Не совсем человек и не совсем призрак. Бьёт из темноты. После боя остаётся только пыль.'}
+  ],
+  bosses:[
+    {id:'boss1',icon:'🛡️',name:'Хранитель Порога',text:'Первый страж Башни. Тяжёлый удар способен смять неосторожного. Этаж 1 — Старый зал.'},
+    {id:'boss2',icon:'👑',name:'Госпожа Покоев',text:'Тень той, кто когда-то правила жилыми покоями. Высасывает жизнь из врагов. Этаж 2.'},
+    {id:'boss3',icon:'👤',name:'Повелитель Теней',text:'Хозяин тёмных коридоров. Создаёт клонов из тьмы. Этаж 3.'},
+    {id:'boss4',icon:'🪖',name:'Капитан Стражи',text:'Призрак командира защитников Башни. Стена щитов, железная дисциплина. Этаж 4.'},
+    {id:'boss5',icon:'🌊',name:'Хозяин Вод',text:'Сущность затопленного этажа. Потоп смывает выносливость. Этаж 5.'},
+    {id:'boss6',icon:'🧙',name:'Архимаг Руин',text:'Древний маг зала рун. Рунный взрыв обходит обычную защиту. Этаж 6.'},
+    {id:'boss7',icon:'🪓',name:'Палач Башни',text:'Тюремный палач, который так и не ушёл. Казнь страшна для раненых. Этаж 7.'},
+    {id:'boss8',icon:'🗼',name:'Хранитель Вершины',text:'Страж перед финалом. Удар с высоты Башни. Этаж 8.'},
+    {id:'boss9',icon:'👑',name:'Владыка Башни',text:'Тот, кто правит вершиной. Три фазы ярости. Победа даёт титул «Покоритель Башни».'}
+  ]
+};
+
+function unlockCodex(cat, id, silent){
+  if(!state) return false;
+  if(!state.codex) state.codex={locations:[],enemies:[],bosses:[]};
+  if(!state.codex[cat]) state.codex[cat]=[];
+  if(state.codex[cat].indexOf(id)!==-1) return false;
+  // проверка что запись существует
+  const list = CODEX[cat];
+  if(!list || !list.some(e=>e.id===id)) return false;
+  state.codex[cat].push(id);
+  if(!silent){
+    const entry = list.find(e=>e.id===id);
+    if(entry) addLog('📖 Кодекс: открыто «'+entry.name+'»','important');
+  }
+  const total = (state.codex.locations||[]).length+(state.codex.enemies||[]).length+(state.codex.bosses||[]).length;
+  if(total>=10) checkAchievement('codex_reader');
+  save();
+  return true;
+}
+function isCodexUnlocked(cat, id){
+  return !!(state && state.codex && state.codex[cat] && state.codex[cat].indexOf(id)!==-1);
+}
+function codexUnlockLocation(locId){
+  if(!locId) return;
+  // маппинг tower_approach / port / tower
+  unlockCodex('locations', locId, false);
+}
+function getCodexProgress(){
+  const tLoc=CODEX.locations.length, tEn=CODEX.enemies.length, tBo=CODEX.bosses.length;
+  const uLoc=(state&&state.codex&&state.codex.locations||[]).length;
+  const uEn=(state&&state.codex&&state.codex.enemies||[]).length;
+  const uBo=(state&&state.codex&&state.codex.bosses||[]).length;
+  return {uLoc,tLoc,uEn,tEn,uBo,tBo, total:uLoc+uEn+uBo, max:tLoc+tEn+tBo};
+}
+const TIME_PHASES={dawn:{name:'Рассвет',icon:'🌅',hours:[5,6,7]},day:{name:'День',icon:'☀️',hours:[8,9,10,11,12,13,14,15,16,17]},evening:{name:'Вечер',icon:'🌆',hours:[18,19,20]},night:{name:'Ночь',icon:'🌙',hours:[21,22,23,0,1,2,3,4]}};
+const WEATHERS={clear:{name:'Ясно',icon:'☀️'},rain:{name:'Дождь',icon:'🌧️'},fog:{name:'Туман',icon:'🌫️'},storm:{name:'Гроза',icon:'⛈️'}};
+const SAVE_KEY='cryfantasy_save_v2';
+const PLAYER_ID_KEY='cryfantasy_player_id';
+
+// ========== ОНЛАЙН (Firebase Realtime Database) ==========
+// Создай бесплатный проект на https://console.firebase.google.com
+// Realtime Database → правила: { "rules": { ".read": true, ".write": true } }  (для теста)
+// Вставь свои данные сюда:
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+// Если config пустой — онлайн в режиме «локально» (чат/друзья/письма только на этом устройстве для теста UI)
+
+const Online = {
+  ready: false,
+  db: null,
+  playerId: null,
+  atTable: false,
+  chatUnsub: null,
+  presenceTimer: null,
+  friends: {},
+  mail: [],
+  onlinePlayers: {},
+  localChat: [], // fallback без Firebase
+  localMail: {},
+  localFriends: {},
+
+  isConfigured(){
+    return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.apiKey);
+  },
+
+  getPlayerId(){
+    let id = localStorage.getItem(PLAYER_ID_KEY);
+    if(!id){
+      id = 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+      localStorage.setItem(PLAYER_ID_KEY, id);
+    }
+    return id;
+  },
+
+  init(){
+    this.playerId = this.getPlayerId();
+    if(!this.isConfigured()){
+      this.ready = false;
+      try{
+        this.localMail = JSON.parse(localStorage.getItem('cryfantasy_local_mail')||'{}');
+        this.localFriends = JSON.parse(localStorage.getItem('cryfantasy_local_friends')||'{}');
+        this.localChat = JSON.parse(localStorage.getItem('cryfantasy_local_chat')||'[]');
+      }catch(e){}
+      return;
+    }
+    try{
+      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      this.db = firebase.database();
+      this.ready = true;
+    }catch(e){
+      console.warn('Firebase init failed', e);
+      this.ready = false;
+    }
+  },
+
+  profile(){
+    if(!state) return {name:'Странник',level:1,classId:''};
+    return {
+      name: state.name || 'Странник',
+      level: state.level || 1,
+      classId: state.classId || '',
+      lastSeen: Date.now(),
+      online: true
+    };
+  },
+
+  goOnline(){
+    this.init();
+    if(!this.ready || !this.db) return;
+    const ref = this.db.ref('players/'+this.playerId);
+    ref.set(this.profile());
+    ref.onDisconnect().update({online:false, lastSeen: Date.now()});
+    if(this.presenceTimer) clearInterval(this.presenceTimer);
+    this.presenceTimer = setInterval(()=>{
+      if(this.db && state) this.db.ref('players/'+this.playerId).update(this.profile());
+    }, 25000);
+    this.loadFriends();
+    this.loadMail();
+  },
+
+  goOffline(){
+    if(this.presenceTimer){ clearInterval(this.presenceTimer); this.presenceTimer=null; }
+    this.leaveTable();
+    if(this.ready && this.db){
+      this.db.ref('players/'+this.playerId).update({online:false, lastSeen: Date.now()});
+    }
+  },
+
+  sitAtTable(){
+    this.atTable = true;
+    if(this.ready && this.db){
+      const chatRef = this.db.ref('chat/tavern').orderByChild('ts').limitToLast(40);
+      chatRef.off();
+      this.chatUnsub = chatRef.on('value', snap=>{
+        const list=[];
+        snap.forEach(c=>{ list.push(Object.assign({id:c.key}, c.val())); });
+        list.sort((a,b)=> (a.ts||0)-(b.ts||0));
+        this._chatCache = list;
+        if(state && state.location==='tavern' && this.atTable) renderTavernChat();
+      });
+    }else{
+      this._chatCache = this.localChat.slice(-40);
+    }
+  },
+
+  leaveTable(){
+    this.atTable = false;
+    if(this.ready && this.db){
+      try{ this.db.ref('chat/tavern').off(); }catch(e){}
+    }
+    this.chatUnsub = null;
+  },
+
+  sendChat(text){
+    text = (text||'').trim().slice(0,200);
+    if(!text || !state) return;
+    const msg = {
+      from: this.playerId,
+      name: state.name || 'Странник',
+      text: text,
+      ts: Date.now()
+    };
+    if(this.ready && this.db){
+      this.db.ref('chat/tavern').push(msg);
+    }else{
+      this.localChat.push(msg);
+      if(this.localChat.length>50) this.localChat = this.localChat.slice(-50);
+      localStorage.setItem('cryfantasy_local_chat', JSON.stringify(this.localChat));
+      this._chatCache = this.localChat.slice(-40);
+      if(this.atTable) renderTavernChat();
+    }
+  },
+
+  loadFriends(){
+    if(this.ready && this.db){
+      this.db.ref('friends/'+this.playerId).once('value').then(snap=>{
+        this.friends = snap.val() || {};
+        // подтянуть статусы
+        Object.keys(this.friends).forEach(fid=>{
+          this.db.ref('players/'+fid).once('value').then(ps=>{
+            if(ps.val()) this.onlinePlayers[fid] = ps.val();
+          });
+        });
+      });
+    }else{
+      this.friends = this.localFriends || {};
+    }
+  },
+
+  addFriend(friendId){
+    friendId = (friendId||'').trim();
+    if(!friendId || friendId===this.playerId) return Promise.resolve({ok:false, err:'Некорректный ID'});
+    if(this.ready && this.db){
+      return this.db.ref('players/'+friendId).once('value').then(snap=>{
+        if(!snap.exists()) return {ok:false, err:'Игрок не найден'};
+        const p = snap.val();
+        return this.db.ref('friends/'+this.playerId+'/'+friendId).set({
+          name: p.name||'Странник', addedAt: Date.now()
+        }).then(()=>{
+          this.friends[friendId] = {name: p.name||'Странник', addedAt: Date.now()};
+          this.onlinePlayers[friendId] = p;
+          return {ok:true, name: p.name};
+        });
+      });
+    }else{
+      this.localFriends[friendId] = {name: 'Игрок '+friendId.slice(-4), addedAt: Date.now()};
+      localStorage.setItem('cryfantasy_local_friends', JSON.stringify(this.localFriends));
+      this.friends = this.localFriends;
+      return Promise.resolve({ok:true, name: this.localFriends[friendId].name});
+    }
+  },
+
+  removeFriend(friendId){
+    if(this.ready && this.db){
+      this.db.ref('friends/'+this.playerId+'/'+friendId).remove();
+    }
+    delete this.friends[friendId];
+    if(!this.ready){
+      delete this.localFriends[friendId];
+      localStorage.setItem('cryfantasy_local_friends', JSON.stringify(this.localFriends));
+    }
+  },
+
+  loadMail(){
+    if(this.ready && this.db){
+      this.db.ref('mail/'+this.playerId).orderByChild('ts').limitToLast(30).once('value').then(snap=>{
+        const list=[];
+        snap.forEach(c=> list.push(Object.assign({id:c.key}, c.val())));
+        list.sort((a,b)=> (b.ts||0)-(a.ts||0));
+        this.mail = list;
+        this._updateMailBadge();
+      });
+    }else{
+      const box = (this.localMail && this.localMail[this.playerId]) || [];
+      this.mail = box.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
+      this._updateMailBadge();
+    }
+  },
+
+  unreadCount(){
+    return (this.mail||[]).filter(m=>!m.read).length;
+  },
+
+  _updateMailBadge(){
+    // обновление при рендере персонажа/таверны
+  },
+
+  sendLetter(toId, subject, body){
+    toId = (toId||'').trim();
+    subject = (subject||'Без темы').trim().slice(0,80);
+    body = (body||'').trim().slice(0,1000);
+    if(!toId || !body || !state) return Promise.resolve({ok:false, err:'Заполни поля'});
+    const letter = {
+      from: this.playerId,
+      fromName: state.name || 'Странник',
+      subject, body,
+      ts: Date.now(),
+      read: false
+    };
+    if(this.ready && this.db){
+      return this.db.ref('players/'+toId).once('value').then(snap=>{
+        if(!snap.exists()) return {ok:false, err:'Игрок не найден'};
+        return this.db.ref('mail/'+toId).push(letter).then(()=>({ok:true}));
+      });
+    }else{
+      if(!this.localMail[toId]) this.localMail[toId]=[];
+      letter.id = 'L'+Date.now();
+      this.localMail[toId].push(letter);
+      localStorage.setItem('cryfantasy_local_mail', JSON.stringify(this.localMail));
+      // если письмо себе — обновить
+      if(toId===this.playerId) this.loadMail();
+      return Promise.resolve({ok:true});
+    }
+  },
+
+  markRead(letterId){
+    const m = (this.mail||[]).find(x=>x.id===letterId);
+    if(m) m.read = true;
+    if(this.ready && this.db){
+      this.db.ref('mail/'+this.playerId+'/'+letterId+'/read').set(true);
+    }else{
+      const box = this.localMail[this.playerId]||[];
+      const found = box.find(x=>x.id===letterId);
+      if(found) found.read=true;
+      localStorage.setItem('cryfantasy_local_mail', JSON.stringify(this.localMail));
+    }
+  }
+};
+
+// ========== СОСТОЯНИЕ ==========
+let state=null;
+
+function $(id){return document.getElementById(id)}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
+function addLog(text,cls){if(!state)return;if(!state.log)state.log=[];state.log.unshift({text,cls:cls||'',time:Date.now()});if(state.log.length>60)state.log.pop()}
+function save(){if(!state)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state))}catch(e){}}
+function load(){try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;state=JSON.parse(raw);migrateState();return true}catch(e){return false}}
+
+function migrateState(){
+  if(!state)return;
+  const d={
+    activeQuests:[],energy:10,maxEnergy:10,lastEnergyRestore:Date.now(),lastWeatherUpdate:Date.now(),
+    currentQuest:null,achievements:[],travelCount:0,flags:{},inventory:[],maxSlots:20,
+    equipped:{weapon:null,armor:null},upgrades:{},letters:[],isTravelling:false,travel:null,
+    quests:[],drunkLevel:0,combatBusy:false,
+    kills:0,questsCompleted:0,craftedPotions:0,sapphire:0,
+    towerFloor:0,towerMaxFloor:0,towerKeys:{},towerBossesDefeated:[],
+    codex:{locations:[],enemies:[],bosses:[]}
+  };
+  Object.keys(d).forEach(k=>{if(state[k]===undefined)state[k]=d[k]});
+  if(!state.equipped) state.equipped={weapon:null,armor:null};
+  if(!Array.isArray(state.inventory)) state.inventory=[];
+  if(!Array.isArray(state.activeQuests)) state.activeQuests=[];
+  if(!Array.isArray(state.achievements)) state.achievements=[];
+  if(!state.towerKeys || typeof state.towerKeys!=='object') state.towerKeys={};
+  if(!Array.isArray(state.towerBossesDefeated)) state.towerBossesDefeated=[];
+  if(!state.codex || typeof state.codex!=='object') state.codex={locations:[],enemies:[],bosses:[]};
+  if(!Array.isArray(state.codex.locations)) state.codex.locations=[];
+  if(!Array.isArray(state.codex.enemies)) state.codex.enemies=[];
+  if(!Array.isArray(state.codex.bosses)) state.codex.bosses=[];
+  // Принудительные флаги
+  state.isTravelling=!!state.travel;
+  state.inCombat=false;
+  state.combatBusy=false;
+  if(typeof state.sapphire!=='number') state.sapphire=0;
+  if(typeof state.level!=='number'||state.level<1) state.level=1;
+  if(state.level>MAX_LEVEL) state.level=MAX_LEVEL;
+}
+
+function resetGame(){
+  if(!confirm('Начать заново? Текущий прогресс будет удалён.'))return;
+  localStorage.removeItem(SAVE_KEY);
+  state=null;
+  $('btn-continue').style.display='none';
+  $('btn-reset').style.display='none';
+  showScreen('screen-title');
+}
+
+// ========== СОЗДАНИЕ ==========
+function startCreate(){
+  state={
+    gender:null,name:'',faction:null,classId:null,
+    level:1,xp:0,gold:50,sapphire:0,
+    hp:100,maxHp:100,stamina:100,maxStamina:100,
+    stats:{},inventory:[],maxSlots:20,
+    equipped:{weapon:null,armor:null},upgrades:{},
+    location:'city',log:[],quests:[],
+    activeQuests:[],energy:10,maxEnergy:10,
+    lastEnergyRestore:Date.now(),lastWeatherUpdate:Date.now(),
+    timePhase:'day',weather:'clear',
+    inCombat:false,enemy:null,currentQuest:null,
+    drunkLevel:0,achievements:[],travelCount:0,
+    flags:{},letters:[],isTravelling:false,travel:null,
+    combatBusy:false,kills:0,questsCompleted:0,craftedPotions:0,
+    towerFloor:0,towerMaxFloor:0,towerKeys:{},towerBossesDefeated:[],
+    codex:{locations:[],enemies:[],bosses:[]}
+  };
+  showScreen('screen-create');goStep('gender');
+}
+function goStep(step){document.querySelectorAll('.create-step').forEach(s=>s.classList.remove('active'));$('step-'+step).classList.add('active');if(step==='faction')renderFactions();if(step==='class')renderClasses();if(step==='confirm')renderConfirm()}
+function selectGender(g){state.gender=g;goStep('name')}
+function confirmName(){const name=$('input-name').value.trim();if(name.length<2){alert('Имя должно быть не короче 2 символов');return}state.name=name;goStep('faction')}
+function renderFactions(){const list=$('faction-list');list.innerHTML='';Object.values(FACTIONS).forEach(f=>{const div=document.createElement('div');div.className='option';div.innerHTML='<div class="option-name">'+f.icon+' '+f.name+'</div><div class="option-desc">'+f.desc+'</div>';div.onclick=()=>{state.faction=f.id;goStep('class')};list.appendChild(div)})}
+function renderClasses(){const list=$('class-list');list.innerHTML='';const faction=FACTIONS[state.faction];faction.classes.forEach(cid=>{const c=CLASSES[cid];const name=c.name[state.gender];const div=document.createElement('div');div.className='option';div.innerHTML='<div class="option-name">'+c.icon+' '+name+'</div><div class="option-desc">'+c.desc+'</div><div class="option-desc" style="margin-top:6px;font-size:.8rem">❤️'+c.stats.hp+' 💪'+c.stats.strength+' 🛡️'+c.stats.defense+' 🏃'+c.stats.agility+' 🔮'+c.stats.magic+'</div>';div.onclick=()=>{state.classId=cid;goStep('confirm')};list.appendChild(div)})}
+function renderConfirm(){const c=CLASSES[state.classId];const f=FACTIONS[state.faction];const name=c.name[state.gender];$('confirm-summary').innerHTML='<p><b>'+state.name+'</b></p><p>'+f.icon+' '+f.name+'</p><p>'+c.icon+' '+name+'</p><p style="margin-top:10px;font-size:.9rem;color:var(--text-dim)">❤️ '+c.stats.hp+' &nbsp; 💪 '+c.stats.strength+' &nbsp; 🛡️ '+c.stats.defense+'<br>🏃 '+c.stats.agility+' &nbsp; 🔮 '+c.stats.magic+' &nbsp; 🧠 '+c.stats.intelligence+' &nbsp; 🍀 '+c.stats.luck+'</p>'}
+function finishCreate(){const c=CLASSES[state.classId];state.stats=Object.assign({},c.stats);state.maxHp=c.stats.hp;state.hp=c.stats.hp;state.maxStamina=100;state.stamina=100;state.location='city';addLog('Ты прибыл в Город-крепость.','important');addLog('Каменные стены. Фонари. Запах дыма и стали.');addLog('Мир ждёт.');save();enterGame()}
+function enterGame(){
+  showScreen('screen-game');
+  checkEnergyRestore();
+  updateTimeAndWeather();
+  updateUI();
+  Online.goOnline();
+  Online.loadMail();
+  const unread = Online.unreadCount();
+  if(unread>0) addLog('✉️ Тебе писем: '+unread+'. Открой «Письма» в таверне или у героя.','important');
+  if(state.location) codexUnlockLocation(state.location);
+  // стартовый город — базовая запись
+  unlockCodex('locations','city',true);
+  renderLocation();
+}
+window.addEventListener('beforeunload',()=>{ try{ Online.goOffline(); }catch(e){} });
+function loadGame(){if(load())enterGame()}
+
+// ========== ИНТЕРФЕЙС ==========
+function updateUI(){
+  if(!state||!state.classId)return;
+  const c=CLASSES[state.classId];
+  $('ui-name').textContent=state.name;
+  $('ui-level').textContent='Ур. '+state.level;
+  $('ui-class').textContent=c?c.name[state.gender]:'—';
+  $('ui-gold').textContent=state.gold;
+  $('ui-sapphire').textContent=state.sapphire;
+  $('bar-hp').style.width=Math.max(0,state.hp/state.maxHp*100)+'%';
+  $('bar-stamina').style.width=Math.max(0,state.stamina/state.maxStamina*100)+'%';
+  $('bar-energy').style.width=Math.max(0,state.energy/state.maxEnergy*100)+'%';
+  $('avatar').textContent=c?c.icon:'⚔';
+  const tp=TIME_PHASES[state.timePhase]||TIME_PHASES.day;
+  const w=WEATHERS[state.weather]||WEATHERS.clear;
+  $('time-weather').textContent=tp.icon+' '+tp.name+' · '+w.icon+' '+w.name;
+}
+
+function switchTab(tab){
+  if(!state)return;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.querySelector('.nav-btn[data-tab="'+tab+'"]');
+  if(btn)btn.classList.add('active');
+  if(state.isTravelling){renderTravelScreen();return}
+  if(state.inCombat){renderCombat();return}
+  if(tab==='explore')renderLocation();
+  else if(tab==='char')renderCharacter();
+  else if(tab==='inv')renderInventory();
+  else if(tab==='log')renderLog();
+}
+
+function renderLocation(){
+  if(!state||state.isTravelling||state.inCombat)return;
+  if(state.location==='tower')return renderTowerFloor();
+  const loc=LOCATIONS[state.location];
+  if(!loc)return;
+  $('loc-name').textContent=loc.name;
+  $('loc-desc').textContent=loc.desc;
+  if(state.location==='tavern')return renderTavern();
+  let html='';
+  if(state.activeQuests.length>0&&state.location==='city'){
+    html+='<div class="panel"><div class="panel-title">Активные задания</div>';
+    state.activeQuests.forEach(aq=>{
+      const q=getQuestById(aq.questId);
+      if(!q)return;
+      const r=Math.max(0,Math.ceil((aq.endsAt-Date.now())/1000));
+      html+='<div style="padding:8px;background:#221c18;border-radius:6px;margin-bottom:6px;font-size:.85rem">'+q.icon+' '+q.name+' — <span style="color:var(--accent2)">'+r+' сек.</span></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div class="panel"><div class="panel-title">Действия</div><div class="actions">';
+  loc.actions.forEach(a=>{html+='<button class="action-btn" onclick="doAction(\''+a.id+'\')"><span class="icon">'+a.icon+'</span><span>'+a.label+'</span></button>'});
+  html+='</div></div>';
+  if(state.log.length){
+    html+='<div class="panel"><div class="panel-title">Недавнее</div><div class="log">';
+    state.log.slice(0,4).forEach(l=>{html+='<p class="'+l.cls+'">'+l.text+'</p>'});
+    html+='</div></div>';
+  }
+  $('content').innerHTML=html;
+}
+
+function doAction(id){
+  if(!state||state.inCombat||state.isTravelling)return;
+  if(LOCATIONS[id]){
+    state.location=id;
+    addLog('Ты пришёл в: '+LOCATIONS[id].name);
+    codexUnlockLocation(id);
+    save();
+    renderLocation();
+    return;
+  }
+  if(id.startsWith('travel_')){
+    const dest=id.replace('travel_','');
+    const map={cemetery:'cemetery',ruins:'ruins',forest:'forest',rocks:'rocks',tower:'tower_approach'};
+    if(map[dest]){travelTo(map[dest]);return}
+  }
+  switch(id){
+    case 'look':addLog('Ты осматриваешься. Старый фонтан. Вороны. Стражники у стен.');renderLocation();break;
+    case 'fountain':addLog('Вода в фонтане мутная. На дне — старые монеты.');renderLocation();break;
+    case 'people':addLog('На площади несколько человек: стражник, торговец и двое путников.');renderLocation();break;
+    case 'look_forge':addLog('Кузнец работает. Искры летят из-под молота.');renderLocation();break;
+    case 'look_alchemy':addLog('Стол алхимика. Книги. Травы. Реагенты.');renderLocation();break;
+    case 'look_home':addLog('Камин потрескивает. На столе — Книга странника.');renderLocation();break;
+    case 'look_forest':addLog('Ты прислушиваешься. Где-то треснула ветка.');renderLocation();break;
+    case 'listen':addLog('Волны бьются о скалы. Ветер.');renderLocation();break;
+    case 'sit_rocks':addLog('Ты садишься на холодный камень.');renderLocation();break;
+    case 'look_sea':addLog('Горизонт тонет в тумане.');renderLocation();break;
+    case 'weapons':case 'armor':showBlacksmith();break;
+    case 'upgrade':showUpgradeMenu();break;
+    case 'alchemist_shop':showAlchemist();break;
+    case 'take_quest':showQuestBoard();break;
+    case 'rest':state.hp=state.maxHp;state.stamina=state.maxStamina;addLog('Ты отдыхаешь у камина.','important');updateUI();renderLocation();save();break;
+    case 'chronicle':showChronicle();break;
+    case 'keeper':showKeeperDialog();break;
+    case 'explore':exploreLocation();break;
+    case 'fight':startRandomCombat();break;
+    case 'enter_tower':enterTower();break;
+    case 'boatman':showBoatmanDialog();break;
+    case 'tower_next':towerNextFloor();break;
+    case 'tower_fight':towerFightTrash();break;
+    case 'tower_boss':towerFightBoss();break;
+    case 'tower_leave':state.location='tower_approach';state.towerFloor=0;addLog('Ты покидаешь Башню.');renderLocation();save();break;
+    default:addLog('Пока недоступно.');renderLocation();
+  }
+  save();
+}
+
+function exploreLocation(){
+  const roll=Math.random();
+  if(roll<0.45){startRandomCombat()}
+  else if(roll<0.65){const g=5+Math.floor(Math.random()*20);state.gold+=g;addLog('Ты находишь '+g+' 🪙','important');updateUI();renderLocation()}
+  else if(roll<0.8){const items=['herb','scrap','rag','bone'];const i=items[Math.floor(Math.random()*items.length)];addItem(ITEMS[i]);renderLocation()}
+  else if(roll<0.9){addLog('Ты находишь старое письмо.','important');addItem(ITEMS.old_letter);renderLocation()}
+  else{addLog('Ничего. Только тишина.');renderLocation()}
+  save();
+}
+function startRandomCombat(){
+  const enemies={forest:['wolf','bandit','boar'],cemetery:['skeleton','shadow'],ruins:['bandit','shadow'],rocks:['wolf']};
+  const pool=enemies[state.location]||['wolf'];
+  const eid=pool[Math.floor(Math.random()*pool.length)];
+  const base=ENEMIES.find(e=>e.id===eid);
+  startCombat(base);
+}
+
+// ========== ПУТЕШЕСТВИЕ ==========
+function travelTo(locId){
+  const times={cemetery:15,ruins:25,forest:40,rocks:35,tower_approach:50};
+  const duration=times[locId]||20;
+  state.isTravelling=true;
+  state.travel={destId:locId,destName:LOCATIONS[locId].name,startedAt:Date.now(),duration,events:generateTravelEvents(duration),rendered:[]};
+  state.travelCount=(state.travelCount||0)+1;
+  if(state.travelCount>=10)checkAchievement('traveler');
+  addLog('🛤️ Ты отправляешься: '+LOCATIONS[locId].name);
+  renderTravelScreen();
+  save();
+}
+function generateTravelEvents(duration){
+  const count=Math.max(2,Math.floor(duration/8));
+  const events=[];
+  const total=TRAVEL_EVENTS.reduce((s,e)=>s+e.weight,0);
+  for(let i=0;i<count;i++){
+    let roll=Math.random()*total;
+    for(const ev of TRAVEL_EVENTS){
+      roll-=ev.weight;
+      if(roll<=0){events.push(Object.assign({},ev,{resolved:false}));break}
+    }
+  }
+  return events;
+}
+function renderTravelScreen(){
+  if(!state||!state.travel){if(state)state.isTravelling=false;return renderLocation()}
+  const t=state.travel;
+  const elapsed=(Date.now()-t.startedAt)/1000;
+  const remaining=Math.max(0,t.duration-elapsed);
+  const progress=Math.min(100,elapsed/t.duration*100);
+  if(remaining<=0){arriveAtDestination();return}
+  const eventInterval=t.duration/t.events.length;
+  const idx=Math.min(t.events.length-1,Math.floor(elapsed/eventInterval));
+  let logHtml='';
+  t.events.slice(0,idx+1).forEach((ev,i)=>{
+    if(i===idx&&!ev.resolved)resolveTravelEvent(ev);
+    const color=ev.type==='combat'?'var(--accent)':ev.type==='find'?'var(--accent2)':'var(--text)';
+    logHtml+='<p style="margin-bottom:6px;color:'+color+'">'+ev.text+'</p>';
+  });
+  $('loc-name').textContent='🛤️ В пути';
+  $('loc-desc').textContent='→ '+t.destName;
+  $('content').innerHTML=
+    '<div class="panel"><div class="panel-title">Путешествие</div>'+
+    '<div style="font-size:.9rem;margin-bottom:8px">Идём к: <b>'+t.destName+'</b></div>'+
+    '<div class="bar" style="height:8px;background:#2a221c;margin-bottom:6px"><div class="bar-fill" style="width:'+progress+'%;background:var(--accent2)"></div></div>'+
+    '<div style="font-size:.8rem;color:var(--text-dim);text-align:center">Осталось: ~'+Math.ceil(remaining)+' сек.</div></div>'+
+    '<div class="panel"><div class="panel-title">Что происходит в пути</div><div style="font-size:.9rem;line-height:1.6">'+logHtml+'</div></div>'+
+    '<button class="action-btn" onclick="abortTravel()">← Отступить</button>';
+  // Не запускаем новый таймер — глобальный интервал сам перерисует
+}
+function resolveTravelEvent(ev){
+  ev.resolved=true;
+  if(ev.type==='find'&&ev.reward){
+    if(ev.reward.gold){
+      const min=ev.reward.gold[0],max=ev.reward.gold[1];
+      const g=min+Math.floor(Math.random()*(max-min+1));
+      state.gold+=g;ev.text+=' (+'+g+' 🪙)';updateUI();
+    }
+    if(ev.reward.item){
+      const item=ITEMS[ev.reward.item];
+      if(addItem(item,ev.reward.qty||1))ev.text+=' (+'+item.name+')';
+    }
+    if(ev.reward.sapphire){
+      state.sapphire = (state.sapphire || 0) + ev.reward.sapphire;
+      ev.text += ' (+'+ev.reward.sapphire+' 🔷)';
+      checkAchievement('sapphire_owner');
+      updateUI();
+    }
+  }
+  if(ev.type==='npc'&&ev.reward&&ev.reward.heal){
+    state.hp=Math.min(state.maxHp,state.hp+ev.reward.heal);
+    ev.text+=' (+'+ev.reward.heal+' HP)';updateUI();
+  }
+  if(ev.type==='combat'){
+    state.travel.combatPending=true;
+    setTimeout(()=>{
+      if(!state||!state.travel)return;
+      const destId=state.travel.destId;
+      state.isTravelling=false;
+      state.travel=null;
+      state.location=destId;
+      const enemy=ENEMIES[Math.floor(Math.random()*ENEMIES.length)];
+      startCombat(enemy);
+    },1500);
+  }
+  save();
+}
+function arriveAtDestination(){
+  if(!state.travel)return;
+  const destId=state.travel.destId;
+  state.isTravelling=false;
+  state.travel=null;
+  state.location=destId;
+  addLog('🏁 Ты прибыл в: '+LOCATIONS[destId].name,'important');
+  if(destId==='forest')checkAchievement('forest_visit');
+  if(destId==='cemetery')checkAchievement('cemetery_visit');
+  if(destId==='ruins')checkAchievement('ruins_visit');
+  codexUnlockLocation(destId);
+  updateUI();renderLocation();save();
+}
+function abortTravel(){
+  if(!state.travel)return;
+  state.isTravelling=false;
+  state.travel=null;
+  addLog('Ты возвращаешься в город.');
+  renderLocation();save();
+}
+
+// ========== БОЙ ==========
+function startCombat(enemyData){
+  if(!enemyData)return;
+  const enemy=Object.assign({},enemyData);
+  enemy.currentHp=enemy.hp;
+  state.enemy=enemy;
+  state.inCombat=true;
+  state.combatBusy=false;
+  addLog('⚔️ На тебя нападает '+enemy.name+'!','important');
+  updateUI();renderCombat();
+}
+function renderCombat(){
+  if(!state.enemy)return renderLocation();
+  const e=state.enemy;
+  const hpP=Math.max(0,e.currentHp/e.hp*100);
+  const playerP=Math.max(0,state.hp/state.maxHp*100);
+  let phaseText='';
+  if(e.isBoss && e.phases > 1){
+    phaseText=' <span style="color:var(--accent2);font-size:.85rem">[Фаза '+(e.phase||1)+'/'+e.phases+']</span>';
+  }
+  $('loc-name').textContent='⚔️ Бой';
+  $('loc-desc').textContent=e.icon+' '+e.name;
+  $('content').innerHTML=
+    '<div class="panel combat-area">'+
+    '<div class="enemy-name">'+e.icon+' '+e.name+phaseText+'</div>'+
+    '<div class="enemy-hp"><div class="bar bar-hp" style="height:12px;margin:0 auto;max-width:220px"><div class="bar-fill" style="width:'+hpP+'%"></div></div><div style="font-size:.9rem;margin-top:4px;color:var(--text-dim)">'+Math.max(0,Math.ceil(e.currentHp))+' / '+e.hp+' HP</div></div>'+
+    '<div style="margin:14px 0;padding:10px;background:#221c18;border-radius:8px"><div style="font-size:.8rem;color:var(--text-dim);margin-bottom:4px">Твоё HP</div><div class="bar bar-hp" style="height:10px"><div class="bar-fill" style="width:'+playerP+'%"></div></div><div style="font-size:.85rem;margin-top:3px">'+state.hp+' / '+state.maxHp+'</div></div>'+
+    '<div class="log" style="text-align:left;max-height:110px;margin-bottom:12px">'+state.log.slice(0,4).map(l=>'<p class="'+l.cls+'">'+l.text+'</p>').join('')+'</div>'+
+    '<div class="combat-actions"><button class="action-btn" onclick="combatAttack()" '+(state.combatBusy?'disabled':'')+'>⚔️ Атака</button><button class="action-btn" onclick="combatDefend()" '+(state.combatBusy?'disabled':'')+'>🛡️ Защита</button><button class="action-btn" onclick="combatSkill()" '+(state.combatBusy?'disabled':'')+'>✨ Способность</button><button class="action-btn" onclick="combatFlee()" '+(state.combatBusy?'disabled':'')+'>🏃 Бежать</button></div>'+
+    '</div>';
+}
+function getPlayerDefense(){
+  let def = state.stats.defense || 0;
+  if(state.equipped && state.equipped.armor && ITEMS[state.equipped.armor]){
+    def += (ITEMS[state.equipped.armor].def || 0) + ((state.upgrades && state.upgrades[state.equipped.armor]) || 0);
+  }
+  return def;
+}
+function enemyTurn(afterFn){
+  const e=state.enemy;
+  if(!e)return;
+  // Фазы Владыки Башни
+  if(e.isBoss && e.special==='lord_phases'){
+    const hpPct = e.currentHp / e.hp;
+    const oldPhase = e.phase || 1;
+    if(hpPct <= 0.33) e.phase = 3;
+    else if(hpPct <= 0.66) e.phase = 2;
+    else e.phase = 1;
+    if(e.phase !== oldPhase){
+      if(e.phase===2){
+        addLog('⚡ Владыка Башни входит во 2-ю фазу! Сила растёт.','danger');
+        e.strength += 5;
+        e.defense = Math.max(0, e.defense - 2);
+      }else if(e.phase===3){
+        addLog('🔥 Владыка Башни входит в финальную фазу! Он в ярости!','danger');
+        e.strength += 7;
+        e.defense = Math.max(0, e.defense - 3);
+      }
+    }
+  }
+  const playerDef = getPlayerDefense();
+  let edmg = Math.max(1, e.strength + Math.floor(Math.random()*4) - Math.floor(playerDef/2));
+  let specialUsed = false;
+  // Уникальные способности боссов
+  if(e.isBoss && e.special && Math.random() < 0.35){
+    specialUsed = true;
+    switch(e.special){
+      case 'heavy_strike':
+        edmg = Math.floor(edmg * 1.6);
+        addLog('🛡️ '+e.name+' наносит Тяжёлый удар! '+edmg+' урона.','danger');
+        break;
+      case 'drain':
+        edmg = Math.floor(edmg * 0.9);
+        const heal = Math.floor(edmg * 0.5);
+        e.currentHp = Math.min(e.hp, e.currentHp + heal);
+        addLog('👑 '+e.name+' высасывает жизнь! '+edmg+' урона, восстанавливает '+heal+' HP.','danger');
+        break;
+      case 'shadow_clone':
+        edmg = Math.floor(edmg * 0.7);
+        addLog('👤 '+e.name+' создаёт теневой клон! Двойной удар: '+edmg+' + '+Math.floor(edmg*0.6)+'.','danger');
+        state.hp = Math.max(0, state.hp - Math.floor(edmg*0.6));
+        break;
+      case 'shield_wall':
+        e.defense = (e.defense||0) + 3;
+        edmg = Math.floor(edmg * 0.5);
+        addLog('🪖 '+e.name+' поднимает Стену щитов! Защита повышена.','danger');
+        break;
+      case 'flood':
+        edmg = Math.floor(edmg * 1.3);
+        state.stamina = Math.max(0, state.stamina - 15);
+        addLog('🌊 '+e.name+' вызывает Потоп! '+edmg+' урона, -15 выносливости.','danger');
+        break;
+      case 'rune_blast':
+        edmg = Math.floor(edmg * 1.4) + 5;
+        addLog('🧙 '+e.name+' выпускает Рунный взрыв! '+edmg+' урона.','danger');
+        break;
+      case 'execute':
+        if(state.hp / state.maxHp < 0.3){
+          edmg = Math.floor(edmg * 2.2);
+          addLog('🪓 '+e.name+' использует Казнь! Критический удар: '+edmg+'.','danger');
+        }else{
+          edmg = Math.floor(edmg * 1.2);
+          addLog('🪓 '+e.name+' замахивается топором! '+edmg+' урона.','danger');
+        }
+        break;
+      case 'tower_strike':
+        edmg = Math.floor(edmg * 1.5);
+        addLog('🗼 '+e.name+' наносит Удар с высоты! '+edmg+' урона.','danger');
+        break;
+      case 'lord_phases':
+        if(e.phase === 3){
+          edmg = Math.floor(edmg * 1.8);
+          addLog('👑 Владыка Башни обрушивает Ярость Тьмы! '+edmg+' урона.','danger');
+        }else if(e.phase === 2){
+          edmg = Math.floor(edmg * 1.3);
+          addLog('👑 Владыка Башни использует Тёмный импульс! '+edmg+' урона.','danger');
+        }else{
+          specialUsed = false;
+        }
+        break;
+      default:
+        specialUsed = false;
+    }
+  }
+  if(!specialUsed){
+    addLog('💥 '+e.name+' наносит тебе '+edmg+'.');
+  }
+  state.hp = Math.max(0, state.hp - edmg);
+  state.combatBusy = false;
+  if(state.hp <= 0){ endCombat(false); return; }
+  updateUI(); renderCombat(); save();
+  if(afterFn) afterFn();
+}
+function combatAttack(){
+  if(!state.inCombat||state.combatBusy)return;
+  state.combatBusy=true;
+  const e=state.enemy;
+  const wB=state.equipped && state.equipped.weapon && ITEMS[state.equipped.weapon] ? (ITEMS[state.equipped.weapon].dmg + ((state.upgrades && state.upgrades[state.equipped.weapon]) || 0)) : 0;
+  const dmg=Math.max(1,state.stats.strength+wB+Math.floor(Math.random()*6)-e.defense);
+  e.currentHp-=dmg;
+  addLog('⚔️ Ты наносишь '+dmg+' урона.','important');
+  if(e.currentHp<=0){endCombat(true);return}
+  setTimeout(()=>enemyTurn(),450);
+}
+function combatDefend(){
+  if(!state.inCombat||state.combatBusy)return;
+  state.combatBusy=true;
+  addLog('Ты принимаешь защитную стойку.');
+  setTimeout(()=>{
+    const e=state.enemy;
+    if(!e)return;
+    const playerDef = getPlayerDefense();
+    const edmg=Math.max(1,Math.floor((e.strength+Math.floor(Math.random()*3)-playerDef)/2));
+    state.hp=Math.max(0,state.hp-edmg);
+    addLog(e.name+' бьёт, но ты блокируешь ('+edmg+').');
+    state.combatBusy=false;
+    if(state.hp<=0){endCombat(false);return}
+    updateUI();renderCombat();save();
+  },400);
+}
+function combatSkill(){
+  if(!state.inCombat||state.combatBusy)return;
+  const mag=state.stats.magic;
+  if(mag<5){addLog('Недостаточно магии.');renderCombat();return}
+  state.combatBusy=true;
+  const e=state.enemy;
+  const dmg=Math.max(1,mag+Math.floor(Math.random()*8));
+  e.currentHp-=dmg;
+  state.stamina=Math.max(0,state.stamina-15);
+  addLog('Способность! '+dmg+' урона.');
+  if(e.currentHp<=0){endCombat(true);return}
+  setTimeout(()=>enemyTurn(),400);
+}
+function combatFlee(){
+  if(!state.inCombat||state.combatBusy)return;
+  state.combatBusy=true;
+  if(Math.random()<0.55){
+    addLog('Ты успешно сбежал!','important');
+    state.inCombat=false;
+    state.enemy=null;
+    state.combatBusy=false;
+    if(state.currentQuest){
+      addLog('Задание провалено — враг ушёл.','danger');
+      state.currentQuest=null;
+    }
+    if(state.location==='tower') renderTowerFloor();
+    else renderLocation();
+    save();
+  }else{
+    addLog('Побег не удался!','danger');
+    setTimeout(()=>enemyTurn(),400);
+  }
+}
+function endCombat(won){
+  state.inCombat=false;
+  state.combatBusy=false;
+  const e=state.enemy;
+  const wasQuest = !!state.currentQuest;
+  if(won&&e){
+    let xpGain=e.xp;
+    let goldGain=e.gold[0]+Math.floor(Math.random()*(e.gold[1]-e.gold[0]+1));
+    let sapphireGain=0;
+    let questName = '';
+    // Награда за квест (если бой был по заданию)
+    if(state.currentQuest){
+      let q = QUESTS.find(x => x.id === state.currentQuest);
+      let isKeyQuest = false;
+      if(!q){
+        q = TOWER_KEY_QUESTS.find(x => x.id === state.currentQuest);
+        isKeyQuest = !!q;
+      }
+      if(q && q.reward){
+        xpGain += q.reward.xp || 0;
+        goldGain += q.reward.gold || 0;
+        sapphireGain += q.reward.sapphire || 0;
+        questName = q.name;
+        state.questsCompleted = (state.questsCompleted || 0) + 1;
+        if(state.questsCompleted >= 5) checkAchievement('quest_master');
+      }
+      // Ключ Башни — только из квеста на ключ
+      if(isKeyQuest && q.keyId && ITEMS[q.keyId]){
+        if(!hasTowerKey(q.keyId)){
+          addItem(ITEMS[q.keyId]);
+          if(!state.towerKeys) state.towerKeys = {};
+          state.towerKeys[q.keyId] = true;
+          addLog('🔑 Получен ключ: '+ITEMS[q.keyId].name+'!','important');
+        }
+      }
+    }
+    state.xp+=xpGain;
+    state.gold+=goldGain;
+    if(sapphireGain > 0){
+      state.sapphire = (state.sapphire || 0) + sapphireGain;
+      addLog('🔷 Получен сапфир x'+sapphireGain+'!','important');
+      checkAchievement('sapphire_owner');
+    }
+    state.kills = (state.kills || 0) + 1;
+    if(wasQuest){
+      addLog('📜 Задание «'+questName+'» выполнено!','important');
+      addLog('Награда: +'+xpGain+' XP, +'+goldGain+' 🪙','important');
+    }else{
+      addLog('Победа! +'+xpGain+' XP, +'+goldGain+' 🪙','important');
+    }
+    // Босс Башни
+    if(e.isBoss && e.floorId){
+      onTowerBossDefeated(e);
+      if(e.id) unlockCodex('bosses', e.id, false);
+    }else if(e && e.id){
+      unlockCodex('enemies', e.id, false);
+    }
+    const loot=ENEMY_LOOT[e.id]||[];
+    loot.forEach(d=>{if(Math.random()<d.chance)addItem(ITEMS[d.item])});
+    checkLevelUp();
+    checkAchievement('first_blood');
+    if(state.kills >= 15) checkAchievement('slayer');
+    // После квеста возвращаемся к Главным воротам — до таверны идти самому
+    if(wasQuest){
+      state.location = 'gate';
+      addLog('Ты возвращаешься к Главным воротам города.');
+    }
+  }else if(!won){
+    addLog('Ты падаешь... Всё темнеет.','important');
+    state.hp=Math.floor(state.maxHp*0.3);
+    const loss=Math.floor(state.gold*0.1);
+    if(loss>0){state.gold-=loss;addLog('Потеряно '+loss+' 🪙')}
+    state.location='home';
+    addLog('Ты приходишь в себя дома. Кто-то помог.');
+    checkAchievement('survivor');
+  }
+  state.enemy=null;
+  state.currentQuest=null;
+  updateUI();
+  // Если были в Башне — возвращаемся на этаж (HP не восстанавливается)
+  if(state.location === 'tower'){
+    renderTowerFloor();
+  }else{
+    renderLocation();
+  }
+  save();
+}
+function checkLevelUp(){
+  while(state.level<MAX_LEVEL&&state.xp>=XP_TABLE[state.level]){
+    state.xp-=XP_TABLE[state.level];
+    state.level++;
+    state.maxHp+=8;
+    state.hp=state.maxHp;
+    state.stats.strength+=1;
+    state.stats.defense+=1;
+    // Как в Легенде о вампире — энергия восстанавливается при повышении уровня
+    state.energy = state.maxEnergy;
+    addLog('✨ Уровень повышен! Теперь '+state.level,'important');
+    addLog('⚡ Энергия полностью восстановлена!','important');
+  }
+  checkAchievementTriggers();
+}
+
+// ========== ТАВЕРНА ==========
+function renderTavern(){
+  if(!state)return;
+  const drunk=state.drunkLevel||0;
+  const drunkText=['трезв','лёгкое опьянение','опьянение','сильное опьянение','тяжёлое опьянение'][drunk]||'трезв';
+  checkActiveQuests();
+  $('loc-name').textContent='Таверна «Старый Ворон»';
+  $('loc-desc').textContent='Тёплое тёмное дерево. Мягкий свет камина.';
+  let html=
+    '<div class="panel"><div class="panel-title">Странник Рей</div>'+
+    '<p style="color:var(--text-dim);font-size:.9rem;margin-bottom:12px">«Есть работа, странник. Монеты и опыт ждут.»</p>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px;font-size:.85rem;flex-wrap:wrap">'+
+    '<span>⚡ Энергия: <b>'+state.energy+'/'+state.maxEnergy+'</b></span>'+
+    '<span>📜 Активных: <b>'+state.activeQuests.length+'/5</b></span>'+
+    '<span>🍺 '+drunkText+'</span></div></div>';
+  if(state.activeQuests.length>0){
+    html+='<div class="panel"><div class="panel-title">Выполняются</div>';
+    state.activeQuests.forEach(aq=>{
+      const q=getQuestById(aq.questId);
+      if(!q)return;
+      const r=Math.max(0,Math.ceil((aq.endsAt-Date.now())/1000));
+      const p=Math.min(100,Math.round((1-r/q.duration)*100));
+      html+='<div style="margin-bottom:12px;padding:10px;background:#221c18;border-radius:8px;border-left:3px solid var(--accent)">'+
+        '<div style="font-weight:600;margin-bottom:4px">'+q.icon+' '+q.name+'</div>'+
+        '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:6px">'+(aq.status==='traveling'?'⏳ В пути...':'⚔️ Бой!')+'</div>'+
+        (aq.status==='traveling'?
+          '<div class="bar" style="height:6px"><div class="bar-fill" style="width:'+p+'%;background:var(--accent2)"></div></div>'+
+          '<div style="font-size:.75rem;color:var(--text-dim);margin-top:3px">Осталось: '+r+' сек.</div>':'')+
+        '</div>';
+    });
+    html+='</div>';
+  }
+  const activeIds=state.activeQuests.map(q=>q.questId);
+  // Квесты на ключи Башни (по уровню)
+  const availKeyQuests=TOWER_KEY_QUESTS.filter(q=>
+    state.level>=q.reqLevel &&
+    !activeIds.includes(q.id) &&
+    !hasTowerKey(q.keyId)
+  );
+  if(availKeyQuests.length>0){
+    html+='<div class="panel"><div class="panel-title">🔑 Ключи Башни</div>';
+    availKeyQuests.forEach(q=>{
+      const canE=state.energy>=q.energyCost;
+      const canT=state.activeQuests.length<5;
+      const dis=!canE||!canT;
+      html+='<div style="margin-bottom:10px;padding:10px;background:#221c18;border-radius:8px;border-left:3px solid var(--accent2);'+(dis?'opacity:.5':'')+'">'+
+        '<div style="font-weight:600;margin-bottom:4px">'+q.icon+' '+q.name+'</div>'+
+        '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:6px">'+q.description+'</div>'+
+        '<div style="font-size:.8rem;display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">'+
+        '<span>⚡ '+q.energyCost+'</span><span>⏱ '+q.duration+'с</span>'+
+        '<span>🎁 '+q.reward.xp+' XP</span><span>🪙 '+q.reward.gold+'</span>'+
+        '<span>🔑 Ключ от этажа '+q.floor+'</span></div>'+
+        '<button class="action-btn" style="width:100%;justify-content:center" onclick="startQuest(\''+q.id+'\')" '+(dis?'disabled':'')+'>'+
+        (!canE?'Не хватает энергии':!canT?'Максимум заданий':'Взять задание на ключ')+'</button></div>';
+    });
+    html+='</div>';
+  }
+  const avail=QUESTS.filter(q=>!activeIds.includes(q.id));
+  if(avail.length>0){
+    html+='<div class="panel"><div class="panel-title">Доступные задания</div>';
+    avail.forEach(q=>{
+      const canE=state.energy>=q.energyCost;
+      const canT=state.activeQuests.length<5;
+      const dis=!canE||!canT;
+      html+='<div style="margin-bottom:10px;padding:10px;background:#221c18;border-radius:8px;'+(dis?'opacity:.5':'')+'">'+
+        '<div style="font-weight:600;margin-bottom:4px">'+q.icon+' '+q.name+'</div>'+
+        '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:6px">'+q.description+'</div>'+
+        '<div style="font-size:.8rem;display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">'+
+        '<span>⚡ '+q.energyCost+'</span><span>⏱ '+q.duration+'с</span>'+
+        '<span>🎁 '+q.reward.xp+' XP</span><span>🪙 '+q.reward.gold+'</span>'+
+        (q.reward.sapphire?'<span>🔷 '+q.reward.sapphire+'</span>':'')+'</div>'+
+        '<button class="action-btn" style="width:100%;justify-content:center" onclick="startQuest(\''+q.id+'\')" '+(dis?'disabled':'')+'>'+
+        (!canE?'Не хватает энергии':!canT?'Максимум заданий':'Взять задание')+'</button></div>';
+    });
+    html+='</div>';
+  }
+  // Восстановление энергии (как кружка эля в Легенде о вампире)
+  const energyFull = state.energy >= state.maxEnergy;
+  html+='<div class="panel"><div class="panel-title">Энергия</div>'+
+    '<p style="font-size:.9rem;margin-bottom:10px">⚡ '+state.energy+' / '+state.maxEnergy+
+    (energyFull?' <span style="color:var(--accent2)">(полная)</span>':'')+'</p>'+
+    '<div class="actions">'+
+    '<button class="action-btn" onclick="restoreEnergy(1)" '+(energyFull||state.gold<30?'disabled':'')+'>'+
+    '<span class="icon">🍺</span><span>Кружка эля — 30 🪙 (+3 ⚡)</span></button>'+
+    '<button class="action-btn" onclick="restoreEnergy(2)" '+(energyFull||state.gold<80?'disabled':'')+'>'+
+    '<span class="icon">🏺</span><span>Кувшин эля — 80 🪙 (+8 ⚡)</span></button>'+
+    '</div></div>';
+  html+='<div class="panel"><div class="panel-title">Выпить / Поесть</div><div class="actions">'+
+    '<button class="action-btn" onclick="showTavernDrinks()"><span class="icon">🍺</span><span>Напитки (лечение)</span></button>'+
+    '<button class="action-btn" onclick="showTavernFood()"><span class="icon">🍖</span><span>Еда</span></button>'+
+    '</div></div>';
+  // Онлайн: общий стол, друзья, письма
+  const unread = Online.unreadCount();
+  const onlineMode = Online.isConfigured() && Online.ready ? 'Онлайн' : 'Локальный режим';
+  html+='<div class="panel"><div class="panel-title">Общий стол · '+onlineMode+
+    (unread?' <span class="mail-badge">'+unread+'</span>':'')+'</div>';
+  if(Online.atTable){
+    html+='<div id="tavern-chat-box" class="chat-box"></div>'+
+      '<div class="chat-input-row">'+
+      '<input id="chat-input" type="text" maxlength="200" placeholder="Сказать за столом..." onkeydown="if(event.key===\'Enter\')sendTavernChat()">'+
+      '<button class="btn" style="padding:10px 14px" onclick="sendTavernChat()">➤</button></div>'+
+      '<button class="action-btn" style="width:100%;margin-top:8px;justify-content:center" onclick="leaveTavernTable()">Встать из-за стола</button>';
+  }else{
+    html+='<p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">Сядь за общий стол — услышишь разговоры других странников. Чат доступен только здесь.</p>'+
+      '<div class="actions">'+
+      '<button class="action-btn" onclick="sitTavernTable()"><span class="icon">🪑</span><span>Сесть за общий стол</span></button>'+
+      '<button class="action-btn" onclick="showFriendsPanel()"><span class="icon">👥</span><span>Друзья</span></button>'+
+      '<button class="action-btn" onclick="showMailPanel()"><span class="icon">✉️</span><span>Письма'+(unread?' ('+unread+')':'')+'</span></button>'+
+      '</div>';
+  }
+  html+='</div>';
+  html+='<button class="action-btn" style="width:100%;justify-content:center" onclick="leaveTavernTable();goTo(\'city\')">← Выйти на улицу</button>';
+  $('content').innerHTML=html;
+  if(Online.atTable) renderTavernChat();
+}
+
+function sitTavernTable(){
+  Online.sitAtTable();
+  addLog('Ты садишься за общий стол. Кругом гул голосов.');
+  renderTavern();
+}
+function leaveTavernTable(){
+  if(Online.atTable){
+    Online.leaveTable();
+    addLog('Ты встаёшь из-за стола.');
+  }
+}
+function sendTavernChat(){
+  const inp = $('chat-input');
+  if(!inp) return;
+  const t = inp.value;
+  inp.value = '';
+  Online.sendChat(t);
+}
+function renderTavernChat(){
+  const box = $('tavern-chat-box');
+  if(!box) return;
+  const list = Online._chatCache || [];
+  if(!list.length){
+    box.innerHTML='<p style="color:var(--text-dim);font-size:.85rem">Пока тихо. Скажи что-нибудь…</p>';
+    return;
+  }
+  box.innerHTML = list.map(m=>{
+    const time = m.ts ? new Date(m.ts).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '';
+    const me = m.from === Online.playerId;
+    return '<div class="chat-msg"><span class="cn">'+(me?'Вы':escapeHtml(m.name||'?'))+'</span><span class="ct">'+time+'</span><br>'+escapeHtml(m.text||'')+'</div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showFriendsPanel(){
+  Online.loadFriends();
+  let h='<h3>👥 Друзья</h3>';
+  h+='<p style="font-size:.8rem;color:var(--text-dim);margin-bottom:10px">Твой ID: <b style="color:var(--accent2);user-select:all">'+Online.getPlayerId()+'</b><br>Дай его другу, чтобы он добавил тебя.</p>';
+  h+='<div class="chat-input-row" style="margin-bottom:12px">'+
+    '<input id="friend-id-input" type="text" placeholder="ID друга" style="flex:1;background:#221c18;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px">'+
+    '<button class="btn" style="padding:10px 14px" onclick="doAddFriend()">+</button></div>';
+  const ids = Object.keys(Online.friends||{});
+  if(!ids.length) h+='<p style="color:var(--text-dim);font-size:.9rem">Пока нет друзей.</p>';
+  else{
+    ids.forEach(fid=>{
+      const f = Online.friends[fid];
+      const p = Online.onlinePlayers[fid];
+      const on = p && p.online;
+      h+='<div style="padding:10px;background:#221c18;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px">'+
+        '<div><span class="'+(on?'online-dot':'offline-dot')+'"></span><b>'+escapeHtml(f.name||fid)+'</b>'+
+        '<div style="font-size:.75rem;color:var(--text-dim)">'+(on?'в сети':'не в сети')+' · '+fid+'</div></div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+        '<button class="btn" style="padding:4px 8px;font-size:.75rem" onclick="openWriteLetter(\''+fid+'\',\''+escapeHtml(f.name||'')+'\')">Письмо</button>'+
+        '<button class="btn btn-secondary" style="padding:4px 8px;font-size:.7rem" onclick="doRemoveFriend(\''+fid+'\')">Удалить</button></div></div>';
+    });
+  }
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function doAddFriend(){
+  const inp = $('friend-id-input');
+  if(!inp) return;
+  Online.addFriend(inp.value).then(r=>{
+    if(r.ok){ addLog('Друг добавлен: '+r.name,'important'); closeModal(); showFriendsPanel(); }
+    else addLog(r.err||'Не удалось','danger');
+  });
+}
+function doRemoveFriend(fid){
+  Online.removeFriend(fid);
+  addLog('Друг удалён.');
+  closeModal(); showFriendsPanel();
+}
+function showMailPanel(){
+  Online.loadMail();
+  let h='<h3>✉️ Письма</h3>';
+  const list = Online.mail||[];
+  if(!list.length) h+='<p style="color:var(--text-dim)">Почтовый ящик пуст.</p>';
+  else{
+    list.forEach(m=>{
+      h+='<div style="padding:10px;background:#221c18;border-radius:8px;margin-bottom:8px;border-left:3px solid '+(m.read?'var(--border)':'var(--accent2)')+'">'+
+        '<div style="font-weight:600">'+(m.read?'':'● ')+escapeHtml(m.subject||'Письмо')+'</div>'+
+        '<div style="font-size:.75rem;color:var(--text-dim);margin:4px 0">от '+escapeHtml(m.fromName||'?')+' · '+(m.ts?new Date(m.ts).toLocaleString('ru-RU'):'')+'</div>'+
+        '<p style="font-size:.9rem;margin:8px 0;white-space:pre-wrap">'+escapeHtml(m.body||'')+'</p>'+
+        '<button class="btn btn-secondary" style="padding:4px 10px;font-size:.75rem" onclick="Online.markRead(\''+m.id+'\');showMailPanel()">Прочитано</button> '+
+        '<button class="btn" style="padding:4px 10px;font-size:.75rem" onclick="openWriteLetter(\''+(m.from||'')+'\',\''+escapeHtml(m.fromName||'')+'\')">Ответить</button></div>';
+    });
+  }
+  h+='<button class="btn" style="width:100%;margin-top:8px" onclick="openWriteLetter(\'\',\'\')">Написать письмо</button>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function openWriteLetter(toId, toName){
+  let h='<h3>✍️ Написать письмо</h3>';
+  h+='<p style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px">Письмо дойдёт даже если игрок не в сети. Он увидит его при входе.</p>';
+  h+='<label style="font-size:.8rem;color:var(--text-dim)">ID получателя</label>';
+  h+='<input id="letter-to" type="text" value="'+escapeHtml(toId||'')+'" placeholder="ID игрока" style="width:100%;margin:4px 0 10px;background:#221c18;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px">';
+  h+='<label style="font-size:.8rem;color:var(--text-dim)">Тема</label>';
+  h+='<input id="letter-subj" type="text" maxlength="80" placeholder="Тема" style="width:100%;margin:4px 0 10px;background:#221c18;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px">';
+  h+='<label style="font-size:.8rem;color:var(--text-dim)">Текст</label>';
+  h+='<textarea id="letter-body" maxlength="1000" rows="4" placeholder="Текст письма..." style="width:100%;margin:4px 0 12px;background:#221c18;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-family:inherit"></textarea>';
+  h+='<button class="btn" style="width:100%" onclick="doSendLetter()">Отправить</button>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Отмена</button>';
+  showModalRaw(h);
+}
+function doSendLetter(){
+  const to = ($('letter-to')||{}).value;
+  const subj = ($('letter-subj')||{}).value;
+  const body = ($('letter-body')||{}).value;
+  Online.sendLetter(to, subj, body).then(r=>{
+    if(r.ok){ addLog('Письмо отправлено.','important'); closeModal(); }
+    else addLog(r.err||'Не удалось отправить','danger');
+  });
+}
+function restoreEnergy(type){
+  if(!state)return;
+  if(state.energy >= state.maxEnergy){
+    addLog('Энергия уже полная.','danger');
+    renderTavern();
+    return;
+  }
+  const cost = type === 1 ? 30 : 80;
+  const amount = type === 1 ? 3 : 8;
+  if(state.gold < cost){
+    addLog('Не хватает монет.','danger');
+    renderTavern();
+    return;
+  }
+  state.gold -= cost;
+  state.energy = Math.min(state.maxEnergy, state.energy + amount);
+  addLog((type===1?'🍺 Кружка эля':'🏺 Кувшин эля')+': +'+amount+' ⚡','important');
+  updateUI();
+  renderTavern();
+  save();
+}
+function goTo(id){
+  if(!state)return;
+  if(state.location==='tavern' && id!=='tavern') leaveTavernTable();
+  state.location=id;
+  renderLocation();
+}
+function showTavernDrinks(){
+  let h='<h3>Напитки (лечение)</h3>';
+  TAVERN_DRINKS.forEach(d=>{
+    h+='<button class="action-btn" style="margin-bottom:6px;width:100%" onclick="buyDrink(\''+d.id+'\')">'+d.name+' — '+d.price+' 🪙 (+'+d.hp+' HP)</button>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function showTavernFood(){
+  let h='<h3>Еда</h3>';
+  TAVERN_FOOD.forEach(f=>{
+    h+='<button class="action-btn" style="margin-bottom:6px;width:100%" onclick="buyFood(\''+f.id+'\')">'+f.name+' — '+f.price+' 🪙 (+'+f.hp+'HP'+(f.stamina?' +'+f.stamina+'⚡':'')+')</button>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function buyDrink(id){
+  const d=TAVERN_DRINKS.find(x=>x.id===id);
+  if(!d)return;
+  if(state.gold<d.price){addLog('Не хватает монет.','danger');closeModal();renderTavern();return}
+  state.gold-=d.price;
+  state.hp=Math.min(state.maxHp,state.hp+d.hp);
+  state.drunkLevel=Math.min(4,(state.drunkLevel||0)+1);
+  addLog('Ты выпил '+d.name+'. +'+d.hp+' HP','important');
+  closeModal();updateUI();renderTavern();save();
+}
+function buyFood(id){
+  const f=TAVERN_FOOD.find(x=>x.id===id);
+  if(!f)return;
+  if(state.gold<f.price){addLog('Не хватает монет.','danger');closeModal();renderTavern();return}
+  state.gold-=f.price;
+  state.hp=Math.min(state.maxHp,state.hp+f.hp);
+  if(f.stamina)state.stamina=Math.min(state.maxStamina,state.stamina+f.stamina);
+  addLog('Ты съел '+f.name+'. +'+f.hp+' HP','important');
+  closeModal();updateUI();renderTavern();save();
+}
+
+// ========== ЗАДАНИЯ ==========
+function getQuestById(questId){
+  return QUESTS.find(x=>x.id===questId) || TOWER_KEY_QUESTS.find(x=>x.id===questId) || null;
+}
+function startQuest(questId){
+  const q=getQuestById(questId);
+  if(!q)return;
+  if(state.energy<q.energyCost){addLog('Недостаточно энергии.','danger');renderTavern();return}
+  if(state.activeQuests.length>=5){addLog('Максимум заданий.','danger');renderTavern();return}
+  // Ключевые квесты — только один раз
+  if(q.keyId && hasTowerKey(q.keyId)){
+    addLog('У тебя уже есть этот ключ.','danger');
+    renderTavern();
+    return;
+  }
+  if(q.reqLevel && state.level < q.reqLevel){
+    addLog('Нужен уровень '+q.reqLevel+'.','danger');
+    renderTavern();
+    return;
+  }
+  state.energy-=q.energyCost;
+  const now=Date.now();
+  state.activeQuests.push({questId:q.id,startedAt:now,endsAt:now+q.duration*1000,status:'traveling'});
+  addLog('📜 Задание принято: «'+q.name+'»','important');
+  save();updateUI();renderTavern();
+}
+function checkActiveQuests(){
+  if(!state||!state.activeQuests||!state.activeQuests.length)return;
+  const now=Date.now();
+  const toStart=[];
+  state.activeQuests=state.activeQuests.filter(aq=>{
+    if(aq.status==='traveling'&&now>=aq.endsAt){
+      const q=getQuestById(aq.questId);
+      if(!q)return false;
+      aq.status='combat';
+      toStart.push(q);
+      return false;
+    }
+    return true;
+  });
+  toStart.forEach(q=>{
+    const enemy=ENEMIES.find(e=>e.id===q.enemyId)||ENEMIES[0];
+    addLog('⚔️ Ты прибыл: '+LOCATIONS[q.location].name);
+    addLog('На тебя нападает '+enemy.name+'!','important');
+    state.currentQuest = q.id; // сохраняем квест, чтобы выдать награду после боя
+    setTimeout(()=>startCombat(enemy),500);
+  });
+}
+function showQuestBoard(){
+  let h='<h3>📜 Доска заданий</h3>'+
+    '<p style="color:var(--text-dim);font-size:.85rem;margin-bottom:12px">Основная доска в городе. Задания берутся в таверне у Странника Рея.</p>'+
+    '<button class="btn btn-secondary" style="width:100%" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+
+// ========== ИНВЕНТАРЬ ==========
+function addItem(item,qty){
+  if(!item)return false;
+  qty=qty||1;
+  if(item.type==='material'||item.type==='potion'||item.type==='quest'){
+    const ex=state.inventory.find(i=>i.id===item.id);
+    if(ex){ex.qty=(ex.qty||1)+qty;addLog('+'+qty+' '+item.name);save();return true}
+  }
+  if(state.inventory.length>=state.maxSlots){
+    addLog('⚠️ Инвентарь полон!','danger');
+    return false;
+  }
+  const copy=Object.assign({},item);
+  if(item.type==='material'||item.type==='potion'||item.type==='quest')copy.qty=qty;
+  state.inventory.push(copy);
+  addLog('+'+qty+' '+item.name);
+  save();
+  return true;
+}
+function removeItem(itemId,qty){
+  qty=qty||1;
+  const idx=state.inventory.findIndex(i=>i.id===itemId);
+  if(idx===-1)return false;
+  const item=state.inventory[idx];
+  if(item.qty&&item.qty>qty)item.qty-=qty;
+  else state.inventory.splice(idx,1);
+  save();return true;
+}
+function hasItem(itemId,qty){
+  qty=qty||1;
+  const item=state.inventory.find(i=>i.id===itemId);
+  return !!(item&&((item.qty||1)>=qty));
+}
+function useItem(itemId){
+  const item=state.inventory.find(i=>i.id===itemId);
+  if(!item)return;
+  if(item.type==='potion'){
+    if(item.heal){state.hp=Math.min(state.maxHp,state.hp+item.heal);addLog('+'+item.heal+' HP','important')}
+    if(item.stamina){state.stamina=Math.min(state.maxStamina,state.stamina+item.stamina);addLog('+'+item.stamina+' ⚡')}
+    removeItem(itemId,1);updateUI();renderInventory();
+  }else if(item.type==='weapon'){
+    state.equipped.weapon=item.id;
+    addLog('Экипировано: '+item.name,'important');
+    renderInventory();save();
+  }else if(item.type==='armor'){
+    state.equipped.armor=item.id;
+    addLog('Экипировано: '+item.name,'important');
+    renderInventory();save();
+  }
+}
+function unequipItem(slot){
+  if(!state.equipped)return;
+  if(slot==='weapon' && state.equipped.weapon){
+    addLog('Снято: '+ITEMS[state.equipped.weapon].name);
+    state.equipped.weapon=null;
+  }else if(slot==='armor' && state.equipped.armor){
+    addLog('Снято: '+ITEMS[state.equipped.armor].name);
+    state.equipped.armor=null;
+  }
+  renderInventory();save();
+}
+function sellItem(itemId){
+  const item=state.inventory.find(i=>i.id===itemId);
+  if(!item || item.type==='quest' || item.type==='key')return;
+  const basePrice = item.price || 1;
+  const sellPrice = Math.max(1, Math.floor(basePrice * 0.4));
+  const qty = item.qty || 1;
+  // Продаём одну штуку
+  removeItem(itemId, 1);
+  state.gold += sellPrice;
+  addLog('Продано: '+item.name+' за '+sellPrice+' 🪙','important');
+  updateUI();
+  renderInventory();
+  save();
+}
+function renderInventory(){
+  $('loc-name').textContent='Инвентарь';
+  $('loc-desc').textContent='Слоты: '+state.inventory.length+' / '+state.maxSlots;
+  const w=state.equipped.weapon?ITEMS[state.equipped.weapon]:null;
+  const a=state.equipped.armor?ITEMS[state.equipped.armor]:null;
+  let html='<div class="panel"><div class="panel-title">Экипировка</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+    '<div style="padding:10px;background:#221c18;border-radius:8px;text-align:center">'+
+    '<div style="font-size:.7rem;color:var(--text-dim)">Оружие</div>'+
+    '<div style="font-size:1.5rem;margin:4px 0">'+(w?w.icon:'—')+'</div>'+
+    '<div style="font-size:.85rem">'+(w?w.name:'Пусто')+'</div>'+
+    (w?'<div style="font-size:.75rem;color:var(--accent2)">+'+(w.dmg+(state.upgrades[w.id]||0))+' урон</div>':'')+
+    (w?'<button class="btn btn-secondary" style="margin-top:6px;padding:4px 10px;font-size:.75rem" onclick="unequipItem(\'weapon\')">Снять</button>':'')+
+    '</div>'+
+    '<div style="padding:10px;background:#221c18;border-radius:8px;text-align:center">'+
+    '<div style="font-size:.7rem;color:var(--text-dim)">Броня</div>'+
+    '<div style="font-size:1.5rem;margin:4px 0">'+(a?a.icon:'—')+'</div>'+
+    '<div style="font-size:.85rem">'+(a?a.name:'Пусто')+'</div>'+
+    (a?'<div style="font-size:.75rem;color:var(--accent2)">+'+(a.def+(state.upgrades[a.id]||0))+' защита</div>':'')+
+    (a?'<button class="btn btn-secondary" style="margin-top:6px;padding:4px 10px;font-size:.75rem" onclick="unequipItem(\'armor\')">Снять</button>':'')+
+    '</div></div></div>';
+  if(state.inventory.length===0){
+    html+='<div class="panel"><p style="color:var(--text-dim);text-align:center">Инвентарь пуст.</p></div>';
+  }else{
+    html+='<div class="panel"><div class="panel-title">Предметы</div>';
+    state.inventory.forEach(item=>{
+      const eq=(item.id===state.equipped.weapon||item.id===state.equipped.armor);
+      const canSell = item.type !== 'quest' && item.type !== 'key' && item.price > 0;
+      const sellPrice = canSell ? Math.max(1, Math.floor((item.price||1)*0.4)) : 0;
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:8px;background:#221c18;border-radius:8px;margin-bottom:6px;'+(eq?'border:1px solid var(--accent2)':'')+'">'+
+        '<div style="font-size:1.5rem">'+item.icon+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600">'+item.name+(item.qty>1?' x'+item.qty:'')+'</div>'+
+        '<div style="font-size:.75rem;color:var(--text-dim)">'+
+        (item.type==='weapon'?'+'+item.dmg+' урон':'')+
+        (item.type==='armor'?'+'+item.def+' защита':'')+
+        (item.type==='potion'?((item.heal?'+'+item.heal+' HP ':'')+(item.stamina?'+'+item.stamina+' ⚡':'')):'')+
+        (item.type==='material'?'Материал':'')+
+        (item.type==='quest'?'Квестовый':'')+
+        (item.type==='key'?'Ключ Башни':'')+
+        (canSell?' · Продажа: '+sellPrice+' 🪙':'')+
+        '</div></div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+        ((item.type==='potion'||item.type==='weapon'||item.type==='armor')&&!eq?
+          '<button class="btn" style="padding:5px 10px;font-size:.75rem" onclick="useItem(\''+item.id+'\')">'+(item.type==='potion'?'Исп.':'Экип.')+'</button>':'')+
+        (eq?'<span style="font-size:.75rem;color:var(--accent2);text-align:center">✓ Надет</span>':'')+
+        (canSell&&!eq?'<button class="btn btn-secondary" style="padding:4px 8px;font-size:.7rem" onclick="sellItem(\''+item.id+'\')">Продать</button>':'')+
+        '</div></div>';
+    });
+    html+='</div>';
+  }
+  $('content').innerHTML=html;
+}
+
+// ========== КОДЕКС UI ==========
+function renderCodex(tab){
+  if(!state)return;
+  tab = tab || 'locations';
+  const prog = getCodexProgress();
+  $('loc-name').textContent='Кодекс';
+  $('loc-desc').textContent='Открыто '+prog.total+' / '+prog.max;
+  const tabs=[
+    {id:'locations',label:'Локации',u:prog.uLoc,t:prog.tLoc},
+    {id:'enemies',label:'Враги',u:prog.uEn,t:prog.tEn},
+    {id:'bosses',label:'Боссы',u:prog.uBo,t:prog.tBo}
+  ];
+  let html='<div class="panel"><div class="actions" style="margin-bottom:0">';
+  tabs.forEach(t=>{
+    const active = tab===t.id;
+    html+='<button class="action-btn" style="'+(active?'border-color:var(--accent2);':'')+'" onclick="renderCodex(\''+t.id+'\')">'+
+      t.label+' ('+t.u+'/'+t.t+')</button>';
+  });
+  html+='</div></div>';
+  const entries = CODEX[tab] || [];
+  const unlocked = (state.codex && state.codex[tab]) || [];
+  html+='<div class="panel">';
+  if(!entries.length){
+    html+='<p class="dim">Пусто.</p>';
+  }else{
+    entries.forEach(e=>{
+      const open = unlocked.indexOf(e.id)!==-1;
+      if(open){
+        html+='<div style="margin-bottom:14px;padding:12px;background:#221c18;border-radius:8px;border-left:3px solid var(--accent2)">'+
+          '<div style="font-weight:600;margin-bottom:6px">'+e.icon+' '+e.name+'</div>'+
+          '<p style="font-size:.9rem;color:var(--text-dim);line-height:1.45">'+e.text+'</p></div>';
+      }else{
+        html+='<div style="margin-bottom:10px;padding:12px;background:#1a1612;border-radius:8px;opacity:.55">'+
+          '<div style="font-weight:600">❓ ???</div>'+
+          '<p style="font-size:.85rem;color:var(--text-dim);margin-top:4px">Ещё не открыто</p></div>';
+      }
+    });
+  }
+  html+='</div>';
+  html+='<button class="action-btn" style="width:100%;justify-content:center" onclick="renderCharacter()">← Назад к герою</button>';
+  $('content').innerHTML=html;
+}
+
+// ========== ПЕРСОНАЖ ==========
+function renderCharacter(){
+  const c=CLASSES[state.classId];
+  const s=state.stats;
+  $('loc-name').textContent=state.name;
+  $('loc-desc').textContent=c.name[state.gender]+' · Уровень '+state.level;
+  const nextXp=state.level<MAX_LEVEL?XP_TABLE[state.level]:'—';
+  $('content').innerHTML=
+    '<div class="panel"><div class="panel-title">Характеристики</div><div class="stats-grid">'+
+    '<div class="stat"><div class="stat-label">❤️ HP</div><div class="stat-value">'+state.hp+'/'+state.maxHp+'</div></div>'+
+    '<div class="stat"><div class="stat-label">⚡ Stamina</div><div class="stat-value">'+state.stamina+'/'+state.maxStamina+'</div></div>'+
+    '<div class="stat"><div class="stat-label">💪 Сила</div><div class="stat-value">'+s.strength+'</div></div>'+
+    '<div class="stat"><div class="stat-label">🛡️ Защита</div><div class="stat-value">'+s.defense+'</div></div>'+
+    '<div class="stat"><div class="stat-label">🏃 Ловкость</div><div class="stat-value">'+s.agility+'</div></div>'+
+    '<div class="stat"><div class="stat-label">🔮 Магия</div><div class="stat-value">'+s.magic+'</div></div>'+
+    '<div class="stat"><div class="stat-label">🧠 Интеллект</div><div class="stat-value">'+s.intelligence+'</div></div>'+
+    '<div class="stat"><div class="stat-label">🍀 Удача</div><div class="stat-value">'+s.luck+'</div></div>'+
+    '</div></div>'+
+    '<div class="panel"><div class="panel-title">Прогресс</div>'+
+    '<p>Уровень: <b>'+state.level+'</b></p>'+
+    '<p>XP: <b>'+state.xp+'</b> / '+nextXp+'</p>'+
+    '<p>Фракция: '+FACTIONS[state.faction].icon+' '+FACTIONS[state.faction].name+'</p>'+
+    '<p>Достижения: <b>'+state.achievements.length+'</b> / '+ACHIEVEMENTS.length+'</p></div>'+
+    '<div class="panel"><div class="panel-title">Онлайн</div>'+
+    '<p style="font-size:.85rem;margin-bottom:8px">Твой ID: <b style="color:var(--accent2);user-select:all">'+Online.getPlayerId()+'</b></p>'+
+    '<p style="font-size:.8rem;color:var(--text-dim);margin-bottom:10px">'+(Online.isConfigured()&&Online.ready?'Подключено к серверу':'Локальный режим — для общего чата настрой Firebase')+'</p>'+
+    '<div class="actions">'+
+    '<button class="action-btn" onclick="showFriendsPanel()"><span class="icon">👥</span><span>Друзья</span></button>'+
+    '<button class="action-btn" onclick="showMailPanel()"><span class="icon">✉️</span><span>Письма'+(Online.unreadCount()?' ('+Online.unreadCount()+')':'')+'</span></button>'+
+    '</div></div>'+
+    '<div class="panel"><div class="panel-title">Кодекс</div>'+
+    '<p style="font-size:.85rem;margin-bottom:10px">Открыто: <b>'+getCodexProgress().total+'</b> / '+getCodexProgress().max+'</p>'+
+    '<button class="action-btn" style="width:100%;justify-content:center" onclick="renderCodex()"><span class="icon">📖</span><span>Открыть Кодекс</span></button></div>'+
+    '<button class="action-btn" style="width:100%;justify-content:center" onclick="showChronicle()">📜 Открыть Летопись героя</button>';
+}
+function renderLog(){
+  $('loc-name').textContent='Журнал';
+  $('loc-desc').textContent='Последние события';
+  let h='<div class="panel"><div class="log" style="max-height:none">';
+  if(!state.log.length)h+='<p class="dim">Пока пусто.</p>';
+  state.log.forEach(l=>{h+='<p class="'+l.cls+'">'+l.text+'</p>'});
+  h+='</div></div>';
+  $('content').innerHTML=h;
+}
+
+// ========== ДОСТИЖЕНИЯ ==========
+function checkAchievement(id){
+  if(!state)return;
+  if(!state.achievements)state.achievements=[];
+  if(state.achievements.includes(id))return;
+  const ach=ACHIEVEMENTS.find(a=>a.id===id);
+  if(!ach)return;
+  state.achievements.push(id);
+  addLog('🏆 Достижение: «'+ach.name+'»','important');
+  showAchievementPopup(ach);
+  save();
+}
+function checkAchievementTriggers(){
+  if(state.gold>=500)checkAchievement('rich');
+  if(state.level>=5)checkAchievement('level5');
+  if(state.level>=10)checkAchievement('level10');
+}
+function showAchievementPopup(ach){
+  const p=document.createElement('div');
+  p.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:2px solid var(--accent2);border-radius:12px;padding:14px 20px;z-index:200;animation:achSlide .4s ease;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.6)';
+  p.innerHTML='<div style="color:var(--accent2);font-size:.75rem;letter-spacing:.1em;margin-bottom:4px">🏆 НОВОЕ ДОСТИЖЕНИЕ</div>'+
+    '<div style="font-weight:600;font-size:1rem">'+ach.name+'</div>'+
+    '<div style="font-size:.8rem;color:var(--text-dim);margin-top:2px">'+ach.desc+'</div>';
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),3500);
+}
+function showChronicle(){
+  const unlocked=state.achievements.length;
+  const total=ACHIEVEMENTS.length;
+  let h='<div class="panel"><div class="panel-title">Летопись героя</div>'+
+    '<p><b>'+state.name+'</b></p>'+
+    '<p>Уровень: <b>'+state.level+'</b></p>'+
+    '<p>Путь: '+CLASSES[state.classId].name[state.gender]+'</p>'+
+    '<p>Достижения: <b>'+unlocked+'/'+total+'</b></p></div>';
+  const cats={combat:'⚔️ Бой',explore:'🌲 Исследование',equipment:'🛡️ Экипировка',city:'🏰 Город',arena:'🏟️ Арена',secret:'❓ Секретные'};
+  Object.entries(cats).forEach(entry=>{
+    const cid=entry[0],cn=entry[1];
+    const ca=ACHIEVEMENTS.filter(a=>a.cat===cid);
+    if(!ca.length)return;
+    h+='<div style="margin-top:12px"><div class="panel-title">'+cn+'</div>';
+    ca.forEach(ach=>{
+      const got=state.achievements.includes(ach.id);
+      h+='<div style="padding:8px;margin-bottom:6px;background:#221c18;border-radius:6px;'+(got?'':'opacity:.5')+'">'+
+        '<div style="font-weight:600;font-size:.9rem">'+(got?'🏆':'🔒')+' '+ach.name+'</div>'+
+        '<div style="font-size:.75rem;color:var(--text-dim);margin-top:2px">'+ach.desc+'</div></div>';
+    });
+    h+='</div>';
+  });
+  showModalRaw(h+'<button class="btn" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>');
+}
+
+// ========== КУЗНЕЦ ==========
+function showBlacksmith(){
+  let h='<h3>⚒️ Кузнец</h3><p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">«Оружие — это продолжение руки.»</p>';
+  BLACKSMITH_STOCK.forEach(s=>{
+    const item=ITEMS[s.item];
+    const can=state.gold>=s.price;
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px">'+
+      '<span><b>'+item.icon+' '+item.name+'</b></span>'+
+      '<span style="color:var(--accent2)">'+s.price+' 🪙</span></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px">'+(item.dmg?'+'+item.dmg+' урон':'')+(item.def?'+'+item.def+' защита':'')+'</div>'+
+      '<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="buyFromBlacksmith(\''+s.item+'\','+s.price+')" '+(can?'':'disabled')+'>'+(can?'Купить':'Не хватает золота')+'</button>'+
+      '</div>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function buyFromBlacksmith(itemId,price){
+  if(state.gold<price)return;
+  state.gold-=price;
+  addItem(ITEMS[itemId]);
+  updateUI();showBlacksmith();save();
+}
+function showUpgradeMenu(){
+  const wId=state.equipped.weapon;
+  const aId=state.equipped.armor;
+  let h='<h3>✨ Улучшение</h3><p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">«Заточка делает сталь острее.»</p>';
+  let has=false;
+  if(wId){
+    has=true;
+    const w=ITEMS[wId];
+    const lv=(state.upgrades&&state.upgrades[wId])||0;
+    const cost=50+lv*30;
+    const can=lv<20;
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px">'+
+      '<div><b>'+w.icon+' '+w.name+' +'+lv+'</b></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin:4px 0">Урон: +'+(w.dmg+lv)+'</div>'+
+      (can?'<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="upgradeItem(\''+wId+'\')">Заточить (+1) — '+cost+' 🪙</button>':'<div style="font-size:.8rem;color:var(--accent2)">✓ Максимум +20</div>')+
+      '</div>';
+  }
+  if(aId){
+    has=true;
+    const a=ITEMS[aId];
+    const lv=(state.upgrades&&state.upgrades[aId])||0;
+    const cost=50+lv*30;
+    const can=lv<20;
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px">'+
+      '<div><b>'+a.icon+' '+a.name+' +'+lv+'</b></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin:4px 0">Защита: +'+(a.def+lv)+'</div>'+
+      (can?'<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="upgradeItem(\''+aId+'\')">Укрепить (+1) — '+cost+' 🪙</button>':'')+
+      '</div>';
+  }
+  if(!has)h+='<p style="color:var(--text-dim)">Сначала экипируй оружие или броню.</p>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function upgradeItem(itemId){
+  if(!state.upgrades)state.upgrades={};
+  const lv=state.upgrades[itemId]||0;
+  const cost=50+lv*30;
+  if(state.gold<cost){addLog('Не хватает золота.','danger');return}
+  state.gold-=cost;
+  state.upgrades[itemId]=lv+1;
+  addLog('🔨 '+ITEMS[itemId].name+' улучшен до +'+(lv+1),'important');
+  updateUI();showUpgradeMenu();save();
+}
+
+// ========== АЛХИМИК ==========
+function showAlchemist(){
+  const h='<h3>🧪 Алхимик</h3>'+
+    '<p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">«Тише… смесь снова светится.»</p>'+
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<button class="btn" style="flex:1;padding:8px;min-width:80px" onclick="showAlchemyBuy()">Купить</button>'+
+    '<button class="btn" style="flex:1;padding:8px;min-width:80px" onclick="showAlchemyCraft()">Создать</button>'+
+    '<button class="btn" style="flex:1;padding:8px;min-width:80px;background:#2a1a4a" onclick="showSapphireShop()">🔷 Сапфиры</button></div>'+
+    '<button class="btn btn-secondary" style="width:100%" onclick="closeModal()">Закрыть</button>';
+  showModalRaw(h);
+}
+function showSapphireShop(){
+  let h='<h3>🔷 Редкие товары</h3>'+
+    '<p style="font-size:.85rem;color:var(--text-dim);margin-bottom:10px">«Эти вещи требуют сапфиров. Очень редкий камень.»</p>'+
+    '<p style="margin-bottom:12px">У тебя: <b style="color:var(--accent2)">'+state.sapphire+' 🔷</b></p>';
+  SAPPHIRE_STOCK.forEach(s=>{
+    const can=state.sapphire>=s.cost;
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px;'+(can?'':'opacity:.55')+'">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:4px">'+
+      '<span><b>'+s.icon+' '+s.name+'</b></span>'+
+      '<span style="color:#7b68ee">'+s.cost+' 🔷</span></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px">'+s.desc+'</div>'+
+      '<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="buySapphireItem(\''+s.id+'\')" '+(can?'':'disabled')+'>'+(can?'Купить':'Не хватает сапфиров')+'</button></div>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="showAlchemist()">← Назад</button>';
+  showModalRaw(h);
+}
+function buySapphireItem(id){
+  const s=SAPPHIRE_STOCK.find(x=>x.id===id);
+  if(!s||state.sapphire<s.cost)return;
+  state.sapphire-=s.cost;
+  if(s.effect==='energy'){
+    state.energy=state.maxEnergy;
+    addLog('⚡ Энергия полностью восстановлена!','important');
+  }else if(s.effect==='maxhp'){
+    state.maxHp+=50;
+    state.hp+=50;
+    addLog('❤️ Максимальное HP увеличено на 50!','important');
+  }else if(s.effect==='luck'){
+    state.stats.luck=(state.stats.luck||0)+2;
+    addLog('🍀 Удача +2!','important');
+  }else if(s.effect==='strength'){
+    state.stats.strength=(state.stats.strength||0)+2;
+    addLog('💪 Сила +2!','important');
+  }
+  updateUI();
+  showSapphireShop();
+  save();
+}
+function showAlchemyBuy(){
+  let h='<h3>🧪 Зелья</h3>';
+  ALCHEMIST_STOCK.forEach(s=>{
+    const item=ITEMS[s.item];
+    const can=state.gold>=s.price;
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px">'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px">'+
+      '<span><b>'+item.icon+' '+item.name+'</b></span>'+
+      '<span style="color:var(--accent2)">'+s.price+' 🪙</span></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px">'+(item.heal?'+'+item.heal+' HP':'')+(item.stamina?' +'+item.stamina+' ⚡':'')+'</div>'+
+      '<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="buyPotion(\''+s.item+'\','+s.price+')" '+(can?'':'disabled')+'>'+(can?'Купить':'Не хватает')+'</button></div>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="showAlchemist()">← Назад</button>';
+  showModalRaw(h);
+}
+function buyPotion(itemId,price){
+  if(state.gold<price)return;
+  state.gold-=price;
+  addItem(ITEMS[itemId]);
+  updateUI();showAlchemyBuy();save();
+}
+function showAlchemyCraft(){
+  let h='<h3>⚗️ Создание</h3>';
+  ALCHEMY_RECIPES.forEach(r=>{
+    const result=ITEMS[r.result];
+    const can=Object.entries(r.ingredients).every(entry=>hasItem(entry[0],entry[1]));
+    h+='<div style="padding:10px;margin-bottom:6px;background:#221c18;border-radius:8px;'+(can?'':'opacity:.6')+'">'+
+      '<div style="margin-bottom:6px"><b>'+result.icon+' '+result.name+'</b></div>'+
+      '<div style="font-size:.8rem;color:var(--text-dim);margin-bottom:8px">Нужно: '+
+      Object.entries(r.ingredients).map(entry=>ITEMS[entry[0]].icon+' '+ITEMS[entry[0]].name+' x'+entry[1]).join(', ')+
+      '</div>'+
+      '<button class="action-btn" style="width:100%;justify-content:center;padding:8px" onclick="craftPotion(\''+r.result+'\')" '+(can?'':'disabled')+'>'+(can?'Создать':'Нет материалов')+'</button></div>';
+  });
+  h+='<button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="showAlchemist()">← Назад</button>';
+  showModalRaw(h);
+}
+function craftPotion(resultId){
+  const recipe=ALCHEMY_RECIPES.find(r=>r.result===resultId);
+  if(!recipe)return;
+  for(const entry of Object.entries(recipe.ingredients)){
+    if(!hasItem(entry[0],entry[1]))return;
+  }
+  for(const entry of Object.entries(recipe.ingredients)){
+    removeItem(entry[0],entry[1]);
+  }
+  addItem(ITEMS[resultId]);
+  state.craftedPotions = (state.craftedPotions || 0) + 1;
+  if(state.craftedPotions === 1) checkAchievement('alchemist');
+  addLog('«Отлично. Реакция прошла как надо.»','important');
+  updateUI();showAlchemyCraft();save();
+}
+
+// ========== NPC ==========
+function showKeeperDialog(){
+  const lines=[
+    '«Наконец-то кто-то пришёл…»',
+    '«Последние несколько ночей здесь что-то происходит.»',
+    '«Могилы никто не трогал. Но каждый вечер в старой часовне загорается свет.»',
+    '«Если действительно хочешь узнать, что там происходит — заходи.»'
+  ];
+  const h='<div style="text-align:center;font-size:3rem;margin-bottom:8px">👴</div>'+
+    '<h3 style="text-align:center">Смотритель кладбища</h3>'+
+    '<div style="margin:14px 0;padding:12px;background:#221c18;border-radius:8px;font-style:italic;line-height:1.6">'+
+    lines.map(l=>'<p style="margin-bottom:8px">'+l+'</p>').join('')+
+    '</div><button class="btn" style="width:100%" onclick="closeModal()">Понятно</button>';
+  showModalRaw(h);
+  state.flags.cemetery_unlocked=true;
+  save();
+}
+
+// ========== ВРЕМЯ И ПОГОДА ==========
+function updateTimeAndWeather(){
+  if(!state)return;
+  const now=new Date();
+  const h=now.getHours();
+  const oldPhase=state.timePhase;
+  const oldWeather=state.weather;
+  if(TIME_PHASES.dawn.hours.includes(h))state.timePhase='dawn';
+  else if(TIME_PHASES.day.hours.includes(h))state.timePhase='day';
+  else if(TIME_PHASES.evening.hours.includes(h))state.timePhase='evening';
+  else state.timePhase='night';
+  const wi=30*60*1000;
+  if(!state.lastWeatherUpdate||now.getTime()-state.lastWeatherUpdate>wi){
+    const roll=Math.random();
+    if(roll<0.55)state.weather='clear';
+    else if(roll<0.8)state.weather='rain';
+    else if(roll<0.95)state.weather='fog';
+    else state.weather='storm';
+    state.lastWeatherUpdate=now.getTime();
+    if(oldWeather&&oldWeather!==state.weather){
+      addLog('🌦️ Погода изменилась: '+WEATHERS[state.weather].name);
+    }
+  }
+  if(oldPhase&&oldPhase!==state.timePhase){
+    addLog(TIME_PHASES[state.timePhase].icon+' Наступило: '+TIME_PHASES[state.timePhase].name);
+  }
+}
+function checkEnergyRestore(){
+  if(!state)return;
+  const now=new Date();
+  const t4=new Date(now);
+  t4.setHours(4,0,0,0);
+  const last=new Date(state.lastEnergyRestore||0);
+  if(now>=t4&&last<t4){
+    state.energy=state.maxEnergy;
+    state.lastEnergyRestore=now.getTime();
+    addLog('⚡ Энергия восстановлена!','important');
+    save();
+  }
+}
+
+// ========== МОДАЛКА ==========
+function showModal(title,body){
+  $('modal-content').innerHTML='<button class="modal-close" onclick="closeModal()">×</button>'+
+    '<h3>'+title+'</h3><p>'+body+'</p>'+
+    '<button class="btn" style="width:100%;margin-top:12px" onclick="closeModal()">Понятно</button>';
+  $('modal').classList.add('show');
+}
+function showModalRaw(html){
+  $('modal-content').innerHTML='<button class="modal-close" onclick="closeModal()">×</button>'+html;
+  $('modal').classList.add('show');
+}
+function closeModal(){$('modal').classList.remove('show')}
+
+// Клик по оверлею закрывает модалку
+document.addEventListener('DOMContentLoaded',()=>{
+  const ov=$('modal');
+  if(ov){
+    ov.addEventListener('click',e=>{if(e.target===ov)closeModal()});
+  }
+  // Esc закрывает
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+});
+
+// ========== БАШНЯ «НОЧНЫЕ ЛЕГЕНДЫ» ==========
+function showBoatmanDialog(){
+  const h='<div style="text-align:center;font-size:3rem;margin-bottom:8px">👴</div>'+
+    '<h3 style="text-align:center">Лодочник</h3>'+
+    '<div style="margin:14px 0;padding:12px;background:#221c18;border-radius:8px;font-style:italic;line-height:1.6">'+
+    '<p>«Погода нынче плохая. В море не поплыву. Приходи позже.»</p></div>'+
+    '<button class="btn" style="width:100%" onclick="closeModal()">Понятно</button>';
+  showModalRaw(h);
+}
+function enterTower(){
+  if(!state.towerMaxFloor) state.towerMaxFloor=0;
+  if(!state.towerFloor) state.towerFloor=0;
+  // Первый этаж требует ключ с квеста 5 уровня
+  if(!hasTowerKey('key_floor1')){
+    addLog('Башня закрыта. Нужен ключ от 1 этажа. Возьми задание на ключ в таверне (с 5 уровня).','danger');
+    return;
+  }
+  if(state.level < 5){
+    addLog('Ты ещё слишком слаб для Башни. Нужен 5 уровень.','danger');
+    return;
+  }
+  state.location='tower';
+  // Ставим на максимальный доступный этаж с ключом
+  let target = 1;
+  for(let i=9;i>=1;i--){
+    const f = TOWER_FLOORS.find(x=>x.id===i);
+    if(f && hasTowerKey(f.keyId) && state.level >= f.minLevel){
+      target = i;
+      break;
+    }
+  }
+  // Если уже были выше и босс побеждён — можно на следующий при наличии ключа
+  if(state.towerFloor > 0 && state.towerFloor <= 9){
+    target = state.towerFloor;
+  }
+  state.towerFloor = target;
+  addLog('Ты входишь в Башню «Ночные легенды». Холод и тишина.');
+  codexUnlockLocation('tower');
+  codexUnlockLocation('tower_approach');
+  renderTowerFloor();
+  save();
+}
+function hasTowerKey(keyId){
+  if(!keyId) return true;
+  if(state.towerKeys && state.towerKeys[keyId]) return true;
+  // Также проверяем инвентарь
+  return (state.inventory||[]).some(i => i.id === keyId);
+}
+function renderTowerFloor(){
+  if(!state || state.location !== 'tower') return;
+  const floorNum = state.towerFloor || 1;
+  const floor = TOWER_FLOORS.find(f => f.id === floorNum);
+  if(!floor){
+    addLog('Выше пути нет.');
+    state.location='tower_approach';
+    renderLocation();
+    return;
+  }
+  if(state.level < floor.minLevel){
+    addLog('Для этого этажа нужен уровень '+floor.minLevel+'.','danger');
+    state.towerFloor = Math.max(1, floorNum-1);
+    renderTowerFloor();
+    return;
+  }
+  if(floor.keyId && !hasTowerKey(floor.keyId)){
+    addLog('Нужен ключ: '+ (ITEMS[floor.keyId]?ITEMS[floor.keyId].name:'ключ')+'. Победи босса предыдущего этажа.','danger');
+    state.towerFloor = Math.max(1, floorNum-1);
+    renderTowerFloor();
+    return;
+  }
+  $('loc-name').textContent='🗼 Этаж '+floor.id+': '+floor.name;
+  $('loc-desc').textContent=floor.desc;
+  const bossDefeated = (state.towerBossesDefeated||[]).includes(floor.id);
+  let html='<div class="panel"><div class="panel-title">Этаж '+floor.id+' / 9</div>'+
+    '<p style="font-size:.9rem;color:var(--text-dim);margin-bottom:12px">'+floor.desc+'</p>'+
+    '<p style="font-size:.85rem;margin-bottom:8px">❤️ HP: <b>'+state.hp+'/'+state.maxHp+'</b> (не восстанавливается автоматически)</p>';
+  if(floor.keyId){
+    html+='<p style="font-size:.8rem;color:var(--accent2)">🔑 Ключ: '+(ITEMS[floor.keyId]?ITEMS[floor.keyId].name:'есть')+'</p>';
+  }
+  html+='</div>';
+  html+='<div class="panel"><div class="panel-title">Действия</div><div class="actions">';
+  if(!bossDefeated){
+    html+='<button class="action-btn" onclick="doAction(\'tower_fight\')"><span class="icon">⚔️</span><span>Искать противников</span></button>';
+    html+='<button class="action-btn" onclick="doAction(\'tower_boss\')"><span class="icon">'+floor.boss.icon+'</span><span>Вызвать босса: '+floor.boss.name+'</span></button>';
+  }else{
+    html+='<p style="color:var(--accent2);margin-bottom:10px">✓ Босс этажа побеждён</p>';
+    if(floor.id < 9){
+      const nextFloor = TOWER_FLOORS.find(f => f.id === floor.id+1);
+      const canNext = nextFloor && (!nextFloor.keyId || hasTowerKey(nextFloor.keyId));
+      if(canNext){
+        html+='<button class="action-btn" onclick="doAction(\'tower_next\')"><span class="icon">⬆️</span><span>Подняться на этаж '+(floor.id+1)+'</span></button>';
+      }else{
+        html+='<p style="font-size:.85rem;color:var(--text-dim)">Нужен ключ от следующего этажа</p>';
+      }
+    }else{
+      html+='<p style="color:var(--accent2);font-weight:600">🏆 Ты покорил первые 9 этажей Башни!</p>';
+    }
+  }
+  html+='<button class="action-btn" onclick="doAction(\'tower_leave\')"><span class="icon">🚪</span><span>Покинуть Башню</span></button>';
+  html+='</div></div>';
+  if(state.log.length){
+    html+='<div class="panel"><div class="panel-title">Недавнее</div><div class="log">';
+    state.log.slice(0,3).forEach(l=>{html+='<p class="'+l.cls+'">'+l.text+'</p>'});
+    html+='</div></div>';
+  }
+  $('content').innerHTML=html;
+}
+function towerFightTrash(){
+  const floor = TOWER_FLOORS.find(f => f.id === state.towerFloor);
+  if(!floor || !floor.trash.length) return;
+  const enemy = Object.assign({}, floor.trash[Math.floor(Math.random()*floor.trash.length)]);
+  enemy.currentHp = enemy.hp;
+  state.enemy = enemy;
+  state.inCombat = true;
+  state.combatBusy = false;
+  state.currentQuest = null; // не квест
+  addLog('⚔️ На тебя нападает '+enemy.name+'!','important');
+  updateUI();
+  renderCombat();
+}
+function towerFightBoss(){
+  const floor = TOWER_FLOORS.find(f => f.id === state.towerFloor);
+  if(!floor) return;
+  if((state.towerBossesDefeated||[]).includes(floor.id)){
+    addLog('Этот босс уже побеждён.');
+    renderTowerFloor();
+    return;
+  }
+  const boss = Object.assign({}, floor.boss);
+  boss.currentHp = boss.hp;
+  boss.isBoss = true;
+  boss.floorId = floor.id;
+  boss.phase = 1;
+  state.enemy = boss;
+  state.inCombat = true;
+  state.combatBusy = false;
+  state.currentQuest = null;
+  addLog('⚔️ Появляется '+boss.name+'!','important');
+  if(boss.phases > 1) addLog('У босса несколько фаз. Будь осторожен.','danger');
+  updateUI();
+  renderCombat();
+}
+function towerNextFloor(){
+  const current = state.towerFloor || 1;
+  if(current >= 9){
+    addLog('Выше пути нет. Ты на вершине.');
+    renderTowerFloor();
+    return;
+  }
+  if(!(state.towerBossesDefeated||[]).includes(current)){
+    addLog('Сначала победи босса этого этажа.','danger');
+    renderTowerFloor();
+    return;
+  }
+  state.towerFloor = current + 1;
+  if(state.towerFloor > (state.towerMaxFloor||0)) state.towerMaxFloor = state.towerFloor;
+  addLog('⬆️ Ты поднимаешься на этаж '+state.towerFloor+'.');
+  renderTowerFloor();
+  save();
+}
+function onTowerBossDefeated(boss){
+  if(!boss || !boss.floorId) return;
+  if(!state.towerBossesDefeated) state.towerBossesDefeated = [];
+  if(state.towerBossesDefeated.includes(boss.floorId)) return;
+  state.towerBossesDefeated.push(boss.floorId);
+  if(boss.floorId > (state.towerMaxFloor||0)) state.towerMaxFloor = boss.floorId;
+  addLog('🏆 Босс этажа '+boss.floorId+' побеждён!','important');
+  const floor = TOWER_FLOORS.find(f => f.id === boss.floorId);
+  if(floor && floor.boss && floor.boss.reward){
+    const r = floor.boss.reward;
+    if(r.extraGold){
+      state.gold += r.extraGold;
+      addLog('💰 Бонус: +'+r.extraGold+' 🪙','important');
+    }
+    if(r.equip && ITEMS[r.equip]){
+      addItem(ITEMS[r.equip]);
+      addLog('⚔️ Трофей: '+ITEMS[r.equip].name+'!','important');
+    }
+    if(r.sapphire){
+      state.sapphire = (state.sapphire||0) + r.sapphire;
+      addLog('🔷 Получен сапфир x'+r.sapphire+'!','important');
+      checkAchievement('sapphire_owner');
+    }
+    if(r.title){
+      addLog('🏆 Титул получен: «'+r.title+'»','important');
+    }
+  }
+  if(boss.floorId === 9){
+    checkAchievement('tower_conqueror');
+  }
+}
+
+// ========== ГЛОБАЛЬНЫЙ ТАЙМЕР ==========
+setInterval(()=>{
+  if(!state)return;
+  if(state.activeQuests&&state.activeQuests.length>0)checkActiveQuests();
+  checkEnergyRestore();
+  updateTimeAndWeather();
+  if(state.isTravelling){renderTravelScreen();return}
+  if(!state.inCombat){
+    updateUI();
+    // Обновляем таверну, если открыта и модалка не показана
+    if(state.location==='tavern'&&$('screen-game').classList.contains('active')&&!$('modal').classList.contains('show')){
+      if(!window._lastTR||Date.now()-window._lastTR>3000){
+        window._lastTR=Date.now();
+        renderTavern();
+      }
+    }
+  }
+},1000);
+
+// ========== ИНИЦИАЛИЗАЦИЯ ==========
+if(localStorage.getItem(SAVE_KEY)){
+  $('btn-continue').style.display='inline-block';
+  $('btn-reset').style.display='inline-block';
+}
+</script>
+</body>
+</html>
